@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
+import 'favorites_screen.dart';
 import 'home_screen.dart';
 import 'notifications_screen.dart';
 import 'search_screen.dart';
 import 'statistics_screen.dart';
 import 'profile_screen.dart';
 
-/// Uygulamanin ana iskeleti: 4 sekmeli alt navigasyon + ortadaki FAB.
+/// Uygulamanin ana iskeleti: 5 sekmeli alt navigasyon + ortadaki FAB.
 class MainShell extends StatefulWidget {
   const MainShell({super.key});
 
@@ -25,7 +26,7 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _openSearch({bool focusField = false}) {
-    setState(() => _index = 1);
+    setState(() => _index = 2);
     if (focusField) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) _searchFocusNode.requestFocus();
@@ -33,7 +34,7 @@ class _MainShellState extends State<MainShell> {
     }
   }
 
-  void _openProfile() => setState(() => _index = 3);
+  void _openProfile() => setState(() => _index = 4);
 
   void _openNotifications() {
     Navigator.of(context).push(
@@ -51,6 +52,7 @@ class _MainShellState extends State<MainShell> {
         onProfileTap: _openProfile,
         onNotificationsTap: _openNotifications,
       ),
+      const FavoritesScreen(),
       SearchScreen(focusNode: _searchFocusNode),
       const StatisticsScreen(),
       const ProfileScreen(),
@@ -58,7 +60,7 @@ class _MainShellState extends State<MainShell> {
 
     return Scaffold(
       body: IndexedStack(index: _index, children: screens),
-      floatingActionButton: _index == 1
+      floatingActionButton: _index == 2
           ? null
           : FloatingActionButton(
               onPressed: () => _openSearch(focusField: true),
@@ -74,7 +76,7 @@ class _MainShellState extends State<MainShell> {
         minimum: const EdgeInsets.fromLTRB(20, 0, 20, 16),
         child: _BottomNav(
           index: _index,
-          onChanged: (i) => i == 1 ? _openSearch() : setState(() => _index = i),
+          onChanged: (i) => i == 2 ? _openSearch() : setState(() => _index = i),
         ),
       ),
     );
@@ -90,6 +92,11 @@ class _BottomNav extends StatelessWidget {
   static const _items = [
     (icon: Icons.home_outlined, active: Icons.home_rounded, label: 'Ana Sayfa'),
     (
+      icon: Icons.favorite_border_rounded,
+      active: Icons.favorite_rounded,
+      label: 'Favoriler'
+    ),
+    (
       icon: Icons.search_outlined,
       active: Icons.search_rounded,
       label: 'Keşfet'
@@ -104,6 +111,13 @@ class _BottomNav extends StatelessWidget {
       active: Icons.person_rounded,
       label: 'Profil'
     ),
+  ];
+  static const _labels = [
+    'Ana Sayfa',
+    'Favoriler',
+    'Arama',
+    'İstatistikler',
+    'Profil',
   ];
 
   @override
@@ -130,24 +144,30 @@ class _BottomNav extends StatelessWidget {
         children: List.generate(_items.length, (i) {
           final selected = i == index;
           final item = _items[i];
-          return GestureDetector(
-            onTap: () => onChanged(i),
-            behavior: HitTestBehavior.opaque,
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-              decoration: BoxDecoration(
-                color: selected
-                    ? primary.withValues(alpha: 0.12)
-                    : Colors.transparent,
-                borderRadius: BorderRadius.circular(16),
-              ),
-              child: Icon(
-                selected ? item.active : item.icon,
-                color: selected
-                    ? primary
-                    : Theme.of(context).textTheme.bodyMedium?.color,
-                size: 24,
+          return Semantics(
+            button: true,
+            selected: selected,
+            label: _labels[i],
+            child: GestureDetector(
+              onTap: () => onChanged(i),
+              behavior: HitTestBehavior.opaque,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 200),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                decoration: BoxDecoration(
+                  color: selected
+                      ? primary.withValues(alpha: 0.12)
+                      : Colors.transparent,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: Icon(
+                  selected ? item.active : item.icon,
+                  color: selected
+                      ? primary
+                      : Theme.of(context).textTheme.bodyMedium?.color,
+                  size: 24,
+                ),
               ),
             ),
           );
