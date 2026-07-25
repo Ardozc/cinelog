@@ -1,8 +1,21 @@
+# ==== Ortam / IDE (tum uygulamalar) ====
+.env
+.env.*
+.idea/
+*.iml
+.vscode/
+
+# ==== apps/movie_tracker (Flutter) ====
 .dart_tool/
 .packages
 build/
 .flutter-plugins
 .flutter-plugins-dependencies
-*.iml
-.idea/
-.env
+
+# ==== Backend (ileride eklenecek servisler icin) ====
+node_modules/
+dist/
+__pycache__/
+*.pyc
+.venv/
+venv/
