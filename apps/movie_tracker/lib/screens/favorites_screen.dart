@@ -18,7 +18,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   final _searchController = TextEditingController();
   String _filter = 'Tümü';
 
-  static const _filters = ['Tümü', 'Filmler', 'Diziler'];
+  static const _filters = ['Tümü', 'Film', 'Dizi'];
 
   List<UserEntry> get _favorites =>
       StorageService.getAll().where((entry) => entry.favorite).toList();
@@ -29,8 +29,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final matchesQuery =
           query.isEmpty || entry.title.toLowerCase().contains(query);
       final matchesFilter = switch (_filter) {
-        'Filmler' => entry.mediaType == 'movie',
-        'Diziler' => entry.mediaType == 'tv',
+        'Film' => entry.mediaType == 'movie',
+        'Dizi' => entry.mediaType == 'tv',
         _ => true,
       };
       return matchesQuery && matchesFilter;
