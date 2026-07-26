@@ -47,105 +47,112 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
-    final favorites = _favorites;
-    final filteredFavorites = _filteredFavorites;
 
-    return SafeArea(
-      bottom: false,
-      child: RefreshIndicator(
-        onRefresh: () async => setState(() {}),
-        color: primary,
-        child: CustomScrollView(
-          slivers: [
-            SliverToBoxAdapter(
-              child: Padding(
-                padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text('Favorilerim',
-                        style: Theme.of(context).textTheme.headlineMedium),
-                    const SizedBox(height: 6),
-                    Text(
-                      '${favorites.length} Favori İçerik',
-                      style: Theme.of(context).textTheme.bodyLarge,
-                    ),
-                    const SizedBox(height: 18),
-                    _SearchBox(
-                      controller: _searchController,
-                      onChanged: (_) => setState(() {}),
-                    ),
-                    const SizedBox(height: 16),
-                    SizedBox(
-                      height: 40,
-                      child: ListView.separated(
-                        scrollDirection: Axis.horizontal,
-                        itemCount: _filters.length,
-                        separatorBuilder: (_, __) => const SizedBox(width: 10),
-                        itemBuilder: (_, index) {
-                          final label = _filters[index];
-                          return CategoryChip(
-                            label: label,
-                            selected: _filter == label,
-                            onTap: () => setState(() => _filter = label),
-                          );
-                        },
-                      ),
-                    ),
-                    const SizedBox(height: 20),
-                  ],
-                ),
-              ),
-            ),
-            if (favorites.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _EmptyFavoritesState(primary: primary),
-              )
-            else if (filteredFavorites.isEmpty)
-              SliverFillRemaining(
-                hasScrollBody: false,
-                child: _NoResultsState(primary: primary),
-              )
-            else
-              SliverPadding(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-                sliver: SliverList(
-                  delegate: SliverChildBuilderDelegate(
-                    (context, index) {
-                      final entry = filteredFavorites[index];
-                      return AnimatedOpacity(
-                        duration: Duration(milliseconds: 250 + index * 40),
-                        opacity: 1,
-                        child: MovieCard(
-                          entry: entry,
-                          onTap: () async {
-                            await Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => DetailScreen(
-                                  movieId: entry.movieId,
-                                  mediaType: entry.mediaType,
-                                ),
-                              ),
-                            );
-                            if (mounted) setState(() {});
-                          },
-                          onFavoriteToggle: () async {
-                            await StorageService.toggleFavorite(entry.movieId);
-                            if (mounted) setState(() {});
-                          },
-                          onMenuTap: () => _showMenu(context, entry),
+    return ValueListenableBuilder<int>(
+      valueListenable: StorageService.changes,
+      builder: (context, _, __) {
+        final favorites = _favorites;
+        final filteredFavorites = _filteredFavorites;
+        return SafeArea(
+          bottom: false,
+          child: RefreshIndicator(
+            onRefresh: () async => setState(() {}),
+            color: primary,
+            child: CustomScrollView(
+              slivers: [
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 24, 20, 0),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text('Favorilerim',
+                            style: Theme.of(context).textTheme.headlineMedium),
+                        const SizedBox(height: 6),
+                        Text(
+                          '${favorites.length} Favori İçerik',
+                          style: Theme.of(context).textTheme.bodyLarge,
                         ),
-                      );
-                    },
-                    childCount: filteredFavorites.length,
+                        const SizedBox(height: 18),
+                        _SearchBox(
+                          controller: _searchController,
+                          onChanged: (_) => setState(() {}),
+                        ),
+                        const SizedBox(height: 16),
+                        SizedBox(
+                          height: 40,
+                          child: ListView.separated(
+                            scrollDirection: Axis.horizontal,
+                            itemCount: _filters.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(width: 10),
+                            itemBuilder: (_, index) {
+                              final label = _filters[index];
+                              return CategoryChip(
+                                label: label,
+                                selected: _filter == label,
+                                onTap: () => setState(() => _filter = label),
+                              );
+                            },
+                          ),
+                        ),
+                        const SizedBox(height: 20),
+                      ],
+                    ),
                   ),
                 ),
-              ),
-          ],
-        ),
-      ),
+                if (favorites.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _EmptyFavoritesState(primary: primary),
+                  )
+                else if (filteredFavorites.isEmpty)
+                  SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: _NoResultsState(primary: primary),
+                  )
+                else
+                  SliverPadding(
+                    padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                    sliver: SliverList(
+                      delegate: SliverChildBuilderDelegate(
+                        (context, index) {
+                          final entry = filteredFavorites[index];
+                          return AnimatedOpacity(
+                            duration: Duration(milliseconds: 250 + index * 40),
+                            opacity: 1,
+                            child: MovieCard(
+                              entry: entry,
+                              onTap: () async {
+                                await Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) => DetailScreen(
+                                      movieId: entry.movieId,
+                                      mediaType: entry.mediaType,
+                                    ),
+                                  ),
+                                );
+                                if (mounted) setState(() {});
+                              },
+                              onFavoriteToggle: () async {
+                                await StorageService.toggleFavorite(
+                                    entry.movieId);
+                                if (mounted) setState(() {});
+                              },
+                              onMenuTap: () => _showMenu(context, entry),
+                            ),
+                          );
+                        },
+                        childCount: filteredFavorites.length,
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        );
+      },
     );
   }
 

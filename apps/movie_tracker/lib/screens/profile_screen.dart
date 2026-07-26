@@ -12,102 +12,109 @@ class ProfileScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final isDark = Theme.of(context).brightness == Brightness.dark;
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
-    final profileStats = _ProfileStats.fromEntries(StorageService.getAll());
 
-    final stats = [
-      (
-        label: 'Toplam Film',
-        value: '${profileStats.totalMovies}',
-        icon: Icons.movie_outlined
-      ),
-      (
-        label: 'Toplam Dizi',
-        value: '${profileStats.totalSeries}',
-        icon: Icons.live_tv_outlined
-      ),
-      (
-        label: 'Favoriler',
-        value: '${profileStats.totalFavorites}',
-        icon: Icons.favorite_border_rounded
-      ),
-      (
-        label: 'Ortalama Puan',
-        value: profileStats.averageRatingText,
-        icon: Icons.star_border_rounded
-      ),
-      (
-        label: 'Tamamlananlar',
-        value: '${profileStats.completed}',
-        icon: Icons.check_circle_outline_rounded
-      ),
-      (
-        label: 'İzleniyor',
-        value: '${profileStats.watching}',
-        icon: Icons.play_circle_outline_rounded
-      ),
-      (
-        label: 'İzlenecekler',
-        value: '${profileStats.watchlist}',
-        icon: Icons.bookmark_border_rounded
-      ),
-      (
-        label: 'Tekrar İzlenecekler',
-        value: '${profileStats.rewatch}',
-        icon: Icons.replay_rounded
-      ),
-      (
-        label: 'Bırakılanlar',
-        value: '${profileStats.dropped}',
-        icon: Icons.cancel_outlined
-      ),
-      (
-        label: 'En sevilen tür',
-        value: profileStats.topGenre,
-        icon: Icons.category_outlined
-      ),
-    ];
+    return ValueListenableBuilder<int>(
+      valueListenable: StorageService.changes,
+      builder: (context, _, __) {
+        final profileStats = _ProfileStats.fromEntries(StorageService.getAll());
 
-    return SafeArea(
-      bottom: false,
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
-        children: [
-          Center(
-            child: Column(
-              children: [
-                CircleAvatar(
-                  radius: 44,
-                  backgroundColor: primary.withValues(alpha: 0.15),
-                  child: Icon(Icons.person_rounded, size: 44, color: primary),
+        final stats = [
+          (
+            label: 'Toplam Film',
+            value: '${profileStats.totalMovies}',
+            icon: Icons.movie_outlined
+          ),
+          (
+            label: 'Toplam Dizi',
+            value: '${profileStats.totalSeries}',
+            icon: Icons.live_tv_outlined
+          ),
+          (
+            label: 'Favoriler',
+            value: '${profileStats.totalFavorites}',
+            icon: Icons.favorite_border_rounded
+          ),
+          (
+            label: 'Ortalama Puan',
+            value: profileStats.averageRatingText,
+            icon: Icons.star_border_rounded
+          ),
+          (
+            label: 'Tamamlananlar',
+            value: '${profileStats.completed}',
+            icon: Icons.check_circle_outline_rounded
+          ),
+          (
+            label: 'İzleniyor',
+            value: '${profileStats.watching}',
+            icon: Icons.play_circle_outline_rounded
+          ),
+          (
+            label: 'İzlenecekler',
+            value: '${profileStats.watchlist}',
+            icon: Icons.bookmark_border_rounded
+          ),
+          (
+            label: 'Tekrar İzlenecekler',
+            value: '${profileStats.rewatch}',
+            icon: Icons.replay_rounded
+          ),
+          (
+            label: 'Bırakılanlar',
+            value: '${profileStats.dropped}',
+            icon: Icons.cancel_outlined
+          ),
+          (
+            label: 'En sevilen tür',
+            value: profileStats.topGenre,
+            icon: Icons.category_outlined
+          ),
+        ];
+
+        return SafeArea(
+          bottom: false,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 24, 20, 24),
+            children: [
+              Center(
+                child: Column(
+                  children: [
+                    CircleAvatar(
+                      radius: 44,
+                      backgroundColor: primary.withValues(alpha: 0.15),
+                      child:
+                          Icon(Icons.person_rounded, size: 44, color: primary),
+                    ),
+                    const SizedBox(height: 14),
+                    Text('Sinefil',
+                        style: Theme.of(context).textTheme.headlineMedium),
+                    const SizedBox(height: 4),
+                    Text('Film ve dizi arşivin',
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ],
                 ),
-                const SizedBox(height: 14),
-                Text('Sinefil',
-                    style: Theme.of(context).textTheme.headlineMedium),
-                const SizedBox(height: 4),
-                Text('Film ve dizi arşivin',
-                    style: Theme.of(context).textTheme.bodyMedium),
-              ],
-            ),
+              ),
+              const SizedBox(height: 28),
+              GridView.count(
+                crossAxisCount: 2,
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 1.35,
+                children: stats
+                    .map((stat) => _StatCard(
+                          label: stat.label,
+                          value: stat.value,
+                          icon: stat.icon,
+                          primary: primary,
+                        ))
+                    .toList(),
+              ),
+            ],
           ),
-          const SizedBox(height: 28),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: 1.35,
-            children: stats
-                .map((stat) => _StatCard(
-                      label: stat.label,
-                      value: stat.value,
-                      icon: stat.icon,
-                      primary: primary,
-                    ))
-                .toList(),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

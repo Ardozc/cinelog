@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../models/user_entry.dart';
 import '../models/watch_status.dart';
@@ -11,6 +12,10 @@ class StorageService {
   static const String _boxName = 'user_entries';
 
   static Box get _box => Hive.box(_boxName);
+
+  /// Veri her degistiginde (ekleme/silme/favori) artar. Ekranlar bunu
+  /// dinleyerek IndexedStack icinde bile anlik olarak yeniden cizilir.
+  static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
   static Future<void> init() async {
     await Hive.initFlutter();
@@ -32,10 +37,12 @@ class StorageService {
 
   static Future<void> save(UserEntry entry) async {
     await _box.put(entry.movieId.toString(), entry.toMap());
+    changes.value++;
   }
 
   static Future<void> delete(int movieId) async {
     await _box.delete(movieId.toString());
+    changes.value++;
   }
 
   static Future<void> toggleFavorite(int movieId) async {
