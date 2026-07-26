@@ -25,7 +25,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _category = 'Hepsi';
-  final _categories = const ['Hepsi', 'Film', 'Dizi', 'Anime', 'Belgesel'];
+  final _categories = const ['Hepsi', 'Film', 'Dizi'];
 
   List<UserEntry> get _filtered => StorageService.byCategory(_category);
 
