@@ -112,25 +112,30 @@ class _DetailScreenState extends State<DetailScreen>
     if (mounted) Navigator.pop(context);
   }
 
-  Future<void> _handleStatusChange(WatchStatus status) async {
-    final String? question = switch (status) {
-      WatchStatus.watching => 'İzlemeye ne zaman başladınız?',
-      WatchStatus.completed => 'Ne zaman bitirdiniz?',
-      WatchStatus.dropped => 'Ne zaman bıraktınız?',
-      WatchStatus.watchlist || WatchStatus.rewatch => null,
-    };
-
-    if (question == null) {
-      setState(() => _status = status);
-      return;
-    }
-
-    final date = await _pickStatusDate(question);
-    if (date == null) return;
-
+  void _handleStatusChange(WatchStatus status) {
     setState(() {
       _status = status;
+      final now = DateTime.now();
       switch (status) {
+        case WatchStatus.watching:
+          _startedAt ??= now;
+          break;
+        case WatchStatus.completed:
+          _completedAt ??= now;
+          break;
+        case WatchStatus.dropped:
+          _droppedAt ??= now;
+          break;
+        case WatchStatus.watchlist:
+        case WatchStatus.rewatch:
+          break;
+      }
+    });
+  }
+
+  void _setStatusDate(DateTime date) {
+    setState(() {
+      switch (_status) {
         case WatchStatus.watching:
           _startedAt = date;
           break;
@@ -147,87 +152,99 @@ class _DetailScreenState extends State<DetailScreen>
     });
   }
 
-  Future<DateTime?> _pickStatusDate(String question) async {
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
-
-    final choice = await showDialog<String>(
+  Future<void> _pickOtherStatusDate() async {
+    final date = await showDatePicker(
       context: context,
-      builder: (context) => Dialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 26, 24, 16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: primary.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: Icon(Icons.calendar_month_rounded, color: primary),
-              ),
-              const SizedBox(height: 18),
-              Text(question, style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 22),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context, 'today'),
-                  child: const Text('Bugün'),
-                ),
-              ),
-              const SizedBox(height: 10),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => Navigator.pop(context, 'other'),
-                  child: const Text('Başka bir tarih'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
+      initialDate: _statusDateConfig?.date ?? DateTime.now(),
+      firstDate: DateTime(1990),
+      lastDate: DateTime.now(),
     );
-
-    if (choice == 'today') return DateTime.now();
-    if (choice == 'other') {
-      if (!mounted) return null;
-      return showDatePicker(
-        context: context,
-        initialDate: DateTime.now(),
-        firstDate: DateTime(1990),
-        lastDate: DateTime.now(),
-      );
-    }
-    return null;
+    if (date != null) _setStatusDate(date);
   }
 
-  String? get _statusDateLabel {
-    final DateTime? date;
-    final String prefix;
+  bool _isToday(DateTime d) {
+    final now = DateTime.now();
+    return d.year == now.year && d.month == now.month && d.day == now.day;
+  }
+
+  ({String question, DateTime? date})? get _statusDateConfig {
     switch (_status) {
       case WatchStatus.watching:
-        date = _startedAt;
-        prefix = 'Başlangıç';
-        break;
+        return (question: 'İzlemeye ne zaman başladınız?', date: _startedAt);
       case WatchStatus.completed:
-        date = _completedAt;
-        prefix = 'Bitiş';
-        break;
+        return (question: 'Ne zaman bitirdiniz?', date: _completedAt);
       case WatchStatus.dropped:
-        date = _droppedAt;
-        prefix = 'Bırakılma';
-        break;
+        return (question: 'Ne zaman bıraktınız?', date: _droppedAt);
       case WatchStatus.watchlist:
       case WatchStatus.rewatch:
         return null;
     }
-    if (date == null) return null;
-    return '$prefix: ${date.day}/${date.month}/${date.year}';
+  }
+
+  Widget _buildStatusDateSection() {
+    final config = _statusDateConfig;
+    if (config == null) return const SizedBox.shrink();
+
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+    final date = config.date;
+    final isToday = date != null && _isToday(date);
+    final otherLabel = date != null && !isToday
+        ? '${date.day}/${date.month}/${date.year}'
+        : 'Başka bir tarih';
+
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 20),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: primary.withValues(alpha: 0.06),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(config.question,
+                style: Theme.of(context).textTheme.titleMedium),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor:
+                          isToday ? primary.withValues(alpha: 0.15) : null,
+                      side: BorderSide(
+                          color: isToday
+                              ? primary
+                              : Theme.of(context).dividerColor),
+                    ),
+                    onPressed: () => _setStatusDate(DateTime.now()),
+                    child: const Text('Bugün'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      backgroundColor: !isToday && date != null
+                          ? primary.withValues(alpha: 0.15)
+                          : null,
+                      side: BorderSide(
+                          color: !isToday && date != null
+                              ? primary
+                              : Theme.of(context).dividerColor),
+                    ),
+                    onPressed: _pickOtherStatusDate,
+                    child: Text(otherLabel, overflow: TextOverflow.ellipsis),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   @override
@@ -383,16 +400,12 @@ class _DetailScreenState extends State<DetailScreen>
                               hintText: 'Bu yapım hakkında düşüncelerin...'),
                         ),
                         const SizedBox(height: 20),
+                        _buildStatusDateSection(),
                         Text('İzleme Durumu',
                             style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 10),
                         StatusSelector(
                             selected: _status, onChanged: _handleStatusChange),
-                        if (_statusDateLabel != null) ...[
-                          const SizedBox(height: 10),
-                          Text(_statusDateLabel!,
-                              style: Theme.of(context).textTheme.bodyMedium),
-                        ],
                       ],
                     ),
                   ),
