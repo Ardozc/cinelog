@@ -23,15 +23,8 @@ class _SearchScreenState extends State<SearchScreen> {
   final _controller = TextEditingController();
   Timer? _debounce;
   List<Movie> _results = [];
-  Set<int> _savedIds = {};
   bool _loading = false;
   String? _error;
-
-  @override
-  void initState() {
-    super.initState();
-    _refreshSavedIds(setStateAfterRead: false);
-  }
 
   void _onChanged(String query) {
     _debounce?.cancel();
@@ -65,15 +58,6 @@ class _SearchScreenState extends State<SearchScreen> {
     }
   }
 
-  void _refreshSavedIds({bool setStateAfterRead = true}) {
-    final ids = StorageService.getAll().map((entry) => entry.movieId).toSet();
-    if (!setStateAfterRead) {
-      _savedIds = ids;
-      return;
-    }
-    if (mounted) setState(() => _savedIds = ids);
-  }
-
   Future<void> _openDetail(Movie movie) async {
     await Navigator.push(
       context,
@@ -82,7 +66,6 @@ class _SearchScreenState extends State<SearchScreen> {
             movieId: movie.id, mediaType: movie.mediaType, preview: movie),
       ),
     );
-    _refreshSavedIds();
   }
 
   Future<void> _addResult(Movie movie) async {
@@ -104,7 +87,6 @@ class _SearchScreenState extends State<SearchScreen> {
         ),
       );
 
-      _refreshSavedIds();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('${details.title} listeye eklendi')),
@@ -197,18 +179,21 @@ class _SearchScreenState extends State<SearchScreen> {
     return AnimatedOpacity(
       duration: const Duration(milliseconds: 300),
       opacity: 1,
-      child: ListView.builder(
-        padding: const EdgeInsets.only(bottom: 24),
-        itemCount: _results.length,
-        itemBuilder: (_, i) {
-          final movie = _results[i];
-          return SearchResultCard(
-            movie: movie,
-            isAdded: _savedIds.contains(movie.id),
-            onAdd: () => _addResult(movie),
-            onTap: () => _openDetail(movie),
-          );
-        },
+      child: ValueListenableBuilder<int>(
+        valueListenable: StorageService.changes,
+        builder: (context, _, __) => ListView.builder(
+          padding: const EdgeInsets.only(bottom: 24),
+          itemCount: _results.length,
+          itemBuilder: (_, i) {
+            final movie = _results[i];
+            return SearchResultCard(
+              movie: movie,
+              isAdded: StorageService.get(movie.id) != null,
+              onAdd: () => _addResult(movie),
+              onTap: () => _openDetail(movie),
+            );
+          },
+        ),
       ),
     );
   }
