@@ -12,7 +12,9 @@ class UserEntry {
   final double userRating; // 0-10
   final String note;
   final WatchStatus status;
-  final DateTime? watchedDate;
+  final DateTime? startedAt;
+  final DateTime? completedAt;
+  final DateTime? droppedAt;
   final bool favorite;
   final DateTime addedAt;
 
@@ -25,7 +27,9 @@ class UserEntry {
     this.userRating = 0,
     this.note = '',
     this.status = WatchStatus.watchlist,
-    this.watchedDate,
+    this.startedAt,
+    this.completedAt,
+    this.droppedAt,
     this.favorite = false,
     DateTime? addedAt,
   }) : addedAt = addedAt ?? DateTime.now();
@@ -33,11 +37,29 @@ class UserEntry {
   String get posterUrl =>
       posterPath != null ? 'https://image.tmdb.org/t/p/w500$posterPath' : '';
 
+  /// Kullanicinin mevcut izleme durumuna karsilik gelen tarih; haftalik
+  /// aktivite grafiginde kullanilir.
+  DateTime? get activityDate {
+    switch (status) {
+      case WatchStatus.watching:
+        return startedAt;
+      case WatchStatus.completed:
+        return completedAt;
+      case WatchStatus.dropped:
+        return droppedAt;
+      case WatchStatus.watchlist:
+      case WatchStatus.rewatch:
+        return null;
+    }
+  }
+
   UserEntry copyWith({
     double? userRating,
     String? note,
     WatchStatus? status,
-    DateTime? watchedDate,
+    DateTime? startedAt,
+    DateTime? completedAt,
+    DateTime? droppedAt,
     bool? favorite,
   }) {
     return UserEntry(
@@ -49,7 +71,9 @@ class UserEntry {
       userRating: userRating ?? this.userRating,
       note: note ?? this.note,
       status: status ?? this.status,
-      watchedDate: watchedDate ?? this.watchedDate,
+      startedAt: startedAt ?? this.startedAt,
+      completedAt: completedAt ?? this.completedAt,
+      droppedAt: droppedAt ?? this.droppedAt,
       favorite: favorite ?? this.favorite,
       addedAt: addedAt,
     );
@@ -64,7 +88,9 @@ class UserEntry {
         'userRating': userRating,
         'note': note,
         'status': status.name,
-        'watchedDate': watchedDate?.toIso8601String(),
+        'startedAt': startedAt?.toIso8601String(),
+        'completedAt': completedAt?.toIso8601String(),
+        'droppedAt': droppedAt?.toIso8601String(),
         'favorite': favorite,
         'addedAt': addedAt.toIso8601String(),
       };
@@ -78,8 +104,14 @@ class UserEntry {
         userRating: (map['userRating'] ?? 0).toDouble(),
         note: map['note'] ?? '',
         status: WatchStatusX.fromName(map['status'] ?? 'watchlist'),
-        watchedDate: map['watchedDate'] != null
-            ? DateTime.tryParse(map['watchedDate'])
+        startedAt: map['startedAt'] != null
+            ? DateTime.tryParse(map['startedAt'])
+            : null,
+        completedAt: map['completedAt'] != null
+            ? DateTime.tryParse(map['completedAt'])
+            : null,
+        droppedAt: map['droppedAt'] != null
+            ? DateTime.tryParse(map['droppedAt'])
             : null,
         favorite: map['favorite'] ?? false,
         addedAt: map['addedAt'] != null

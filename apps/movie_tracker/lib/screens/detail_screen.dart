@@ -35,7 +35,9 @@ class _DetailScreenState extends State<DetailScreen>
   double _rating = 0;
   final _noteController = TextEditingController();
   WatchStatus _status = WatchStatus.watchlist;
-  DateTime? _watchedDate;
+  DateTime? _startedAt;
+  DateTime? _completedAt;
+  DateTime? _droppedAt;
   bool _favorite = false;
   bool _justAdded = false;
 
@@ -54,7 +56,9 @@ class _DetailScreenState extends State<DetailScreen>
       _rating = existing.userRating;
       _noteController.text = existing.note;
       _status = existing.status;
-      _watchedDate = existing.watchedDate;
+      _startedAt = existing.startedAt;
+      _completedAt = existing.completedAt;
+      _droppedAt = existing.droppedAt;
       _favorite = existing.favorite;
     }
   }
@@ -97,13 +101,133 @@ class _DetailScreenState extends State<DetailScreen>
       userRating: _rating,
       note: _noteController.text,
       status: _status,
-      watchedDate: _watchedDate,
+      startedAt: _startedAt,
+      completedAt: _completedAt,
+      droppedAt: _droppedAt,
       favorite: _favorite,
     );
     await StorageService.save(entry);
     setState(() => _justAdded = true);
     await Future.delayed(const Duration(milliseconds: 900));
     if (mounted) Navigator.pop(context);
+  }
+
+  Future<void> _handleStatusChange(WatchStatus status) async {
+    final String? question = switch (status) {
+      WatchStatus.watching => 'İzlemeye ne zaman başladınız?',
+      WatchStatus.completed => 'Ne zaman bitirdiniz?',
+      WatchStatus.dropped => 'Ne zaman bıraktınız?',
+      WatchStatus.watchlist || WatchStatus.rewatch => null,
+    };
+
+    if (question == null) {
+      setState(() => _status = status);
+      return;
+    }
+
+    final date = await _pickStatusDate(question);
+    if (date == null) return;
+
+    setState(() {
+      _status = status;
+      switch (status) {
+        case WatchStatus.watching:
+          _startedAt = date;
+          break;
+        case WatchStatus.completed:
+          _completedAt = date;
+          break;
+        case WatchStatus.dropped:
+          _droppedAt = date;
+          break;
+        case WatchStatus.watchlist:
+        case WatchStatus.rewatch:
+          break;
+      }
+    });
+  }
+
+  Future<DateTime?> _pickStatusDate(String question) async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+
+    final choice = await showDialog<String>(
+      context: context,
+      builder: (context) => Dialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 26, 24, 16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(10),
+                decoration: BoxDecoration(
+                  color: primary.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: Icon(Icons.calendar_month_rounded, color: primary),
+              ),
+              const SizedBox(height: 18),
+              Text(question, style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 22),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context, 'today'),
+                  child: const Text('Bugün'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton(
+                  onPressed: () => Navigator.pop(context, 'other'),
+                  child: const Text('Başka bir tarih'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    if (choice == 'today') return DateTime.now();
+    if (choice == 'other') {
+      if (!mounted) return null;
+      return showDatePicker(
+        context: context,
+        initialDate: DateTime.now(),
+        firstDate: DateTime(1990),
+        lastDate: DateTime.now(),
+      );
+    }
+    return null;
+  }
+
+  String? get _statusDateLabel {
+    final DateTime? date;
+    final String prefix;
+    switch (_status) {
+      case WatchStatus.watching:
+        date = _startedAt;
+        prefix = 'Başlangıç';
+        break;
+      case WatchStatus.completed:
+        date = _completedAt;
+        prefix = 'Bitiş';
+        break;
+      case WatchStatus.dropped:
+        date = _droppedAt;
+        prefix = 'Bırakılma';
+        break;
+      case WatchStatus.watchlist:
+      case WatchStatus.rewatch:
+        return null;
+    }
+    if (date == null) return null;
+    return '$prefix: ${date.day}/${date.month}/${date.year}';
   }
 
   @override
@@ -259,42 +383,16 @@ class _DetailScreenState extends State<DetailScreen>
                               hintText: 'Bu yapım hakkında düşüncelerin...'),
                         ),
                         const SizedBox(height: 20),
-                        Row(
-                          children: [
-                            Expanded(
-                                child: Text('İzleme Tarihi',
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium)),
-                            TextButton.icon(
-                              onPressed: () async {
-                                final date = await showDatePicker(
-                                  context: context,
-                                  initialDate: _watchedDate ?? DateTime.now(),
-                                  firstDate: DateTime(1990),
-                                  lastDate: DateTime.now(),
-                                );
-                                if (date != null) {
-                                  setState(() => _watchedDate = date);
-                                }
-                              },
-                              icon: const Icon(Icons.calendar_today_outlined,
-                                  size: 16),
-                              label: Text(
-                                _watchedDate == null
-                                    ? 'Seç'
-                                    : '${_watchedDate!.day}/${_watchedDate!.month}/${_watchedDate!.year}',
-                              ),
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 14),
                         Text('İzleme Durumu',
                             style: Theme.of(context).textTheme.titleMedium),
                         const SizedBox(height: 10),
                         StatusSelector(
-                            selected: _status,
-                            onChanged: (s) => setState(() => _status = s)),
+                            selected: _status, onChanged: _handleStatusChange),
+                        if (_statusDateLabel != null) ...[
+                          const SizedBox(height: 10),
+                          Text(_statusDateLabel!,
+                              style: Theme.of(context).textTheme.bodyMedium),
+                        ],
                       ],
                     ),
                   ),

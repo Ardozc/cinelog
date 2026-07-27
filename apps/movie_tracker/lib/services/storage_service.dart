@@ -134,7 +134,7 @@ class StorageService {
       for (final m in months) labels[m.month - 1]: 0
     };
     for (final e in getAll()) {
-      final d = e.watchedDate;
+      final d = e.completedAt;
       if (d == null || e.status != WatchStatus.completed) continue;
       for (final m in months) {
         if (d.year == m.year && d.month == m.month) {
@@ -154,7 +154,7 @@ class StorageService {
       for (final d in days) labels[d.weekday - 1]: 0
     };
     for (final e in getAll()) {
-      final d = e.watchedDate;
+      final d = e.activityDate;
       if (d == null) continue;
       for (final day in days) {
         if (d.year == day.year && d.month == day.month && d.day == day.day) {
