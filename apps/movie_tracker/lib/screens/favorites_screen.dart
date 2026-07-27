@@ -3,6 +3,7 @@ import '../models/user_entry.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/category_chip.dart';
+import '../widgets/genre_filter_chips.dart';
 import '../widgets/movie_card.dart';
 import 'detail_screen.dart';
 
@@ -17,6 +18,7 @@ class FavoritesScreen extends StatefulWidget {
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final _searchController = TextEditingController();
   String _filter = 'Tümü';
+  Set<String> _selectedGenres = {};
 
   static const _filters = ['Tümü', 'Film', 'Dizi'];
 
@@ -33,7 +35,8 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
         'Dizi' => entry.mediaType == 'tv',
         _ => true,
       };
-      return matchesQuery && matchesFilter;
+      final matchesGenre = StorageService.matchesGenres(entry, _selectedGenres);
+      return matchesQuery && matchesFilter && matchesGenre;
     }).toList();
   }
 
@@ -95,6 +98,12 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               );
                             },
                           ),
+                        ),
+                        const SizedBox(height: 12),
+                        GenreFilterChips(
+                          selected: _selectedGenres,
+                          onChanged: (genres) =>
+                              setState(() => _selectedGenres = genres),
                         ),
                         const SizedBox(height: 20),
                       ],

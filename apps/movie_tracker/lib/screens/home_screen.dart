@@ -3,6 +3,7 @@ import '../models/user_entry.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/category_chip.dart';
+import '../widgets/genre_filter_chips.dart';
 import '../widgets/movie_card.dart';
 import 'detail_screen.dart';
 
@@ -26,8 +27,11 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   String _category = 'Hepsi';
   final _categories = const ['Hepsi', 'Film', 'Dizi'];
+  Set<String> _selectedGenres = {};
 
-  List<UserEntry> get _filtered => StorageService.byCategory(_category);
+  List<UserEntry> get _filtered => StorageService.byCategory(_category)
+      .where((e) => StorageService.matchesGenres(e, _selectedGenres))
+      .toList();
 
   @override
   Widget build(BuildContext context) {
@@ -145,6 +149,12 @@ class _HomeScreenState extends State<HomeScreen> {
                                 setState(() => _category = _categories[i]),
                           ),
                         ),
+                      ),
+                      const SizedBox(height: 12),
+                      GenreFilterChips(
+                        selected: _selectedGenres,
+                        onChanged: (genres) =>
+                            setState(() => _selectedGenres = genres),
                       ),
                       const SizedBox(height: 20),
                     ],

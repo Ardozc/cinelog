@@ -63,6 +63,11 @@ class StorageService {
     return all.where((e) => e.genre == category).toList();
   }
 
+  /// Coklu tur filtrelemesi (OR mantigi): secili turlerden herhangi birine
+  /// sahip olan icerikler eslesir. Bos kume = filtre yok, tumu eslesir.
+  static bool matchesGenres(UserEntry entry, Set<String> selected) =>
+      selected.isEmpty || entry.genres.any(selected.contains);
+
   // ---- Istatistik yardimcilari ----
 
   static int get totalMovies =>

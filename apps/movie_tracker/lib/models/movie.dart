@@ -1,3 +1,5 @@
+import '../data/genres.dart';
+
 /// TMDb aramasindan / detayindan donen film-dizi modeli.
 class Movie {
   final int id;
@@ -26,6 +28,10 @@ class Movie {
 
   factory Movie.fromSearchJson(Map<String, dynamic> json) {
     final type = json['media_type'] ?? (json['title'] != null ? 'movie' : 'tv');
+    final resolvedType = type == 'movie' || type == 'tv' ? type : 'movie';
+    final genreIds =
+        (json['genre_ids'] as List?)?.map((e) => e as int).toList() ??
+            const <int>[];
     return Movie(
       id: json['id'],
       title: json['title'] ?? json['name'] ?? 'Bilinmiyor',
@@ -34,7 +40,8 @@ class Movie {
       overview: json['overview'] ?? '',
       releaseDate: json['release_date'] ?? json['first_air_date'] ?? '',
       voteAverage: (json['vote_average'] ?? 0).toDouble(),
-      mediaType: type == 'movie' || type == 'tv' ? type : 'movie',
+      genres: GenreCatalog.namesForIds(genreIds, resolvedType),
+      mediaType: resolvedType,
     );
   }
 

@@ -98,6 +98,7 @@ class _DetailScreenState extends State<DetailScreen>
       posterPath: m.posterPath,
       mediaType: m.mediaType,
       genre: m.genres.isNotEmpty ? m.genres.first : 'Diğer',
+      genres: m.genres,
       userRating: _rating,
       note: _noteController.text,
       status: _status,

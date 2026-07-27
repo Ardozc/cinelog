@@ -8,7 +8,9 @@ class UserEntry {
   final String title;
   final String? posterPath;
   final String mediaType; // movie | tv
-  final String genre; // baskin tur - kategori filtresi ve istatistik icin
+  final String genre; // baskin tur - kart etiketi ve istatistik icin
+  final List<String>
+      genres; // TMDb'deki tum turler - coklu tur filtrelemesi icin
   final double userRating; // 0-10
   final String note;
   final WatchStatus status;
@@ -24,6 +26,7 @@ class UserEntry {
     this.posterPath,
     required this.mediaType,
     this.genre = 'Diğer',
+    this.genres = const [],
     this.userRating = 0,
     this.note = '',
     this.status = WatchStatus.watchlist,
@@ -68,6 +71,7 @@ class UserEntry {
       posterPath: posterPath,
       mediaType: mediaType,
       genre: genre,
+      genres: genres,
       userRating: userRating ?? this.userRating,
       note: note ?? this.note,
       status: status ?? this.status,
@@ -85,6 +89,7 @@ class UserEntry {
         'posterPath': posterPath,
         'mediaType': mediaType,
         'genre': genre,
+        'genres': genres,
         'userRating': userRating,
         'note': note,
         'status': status.name,
@@ -101,6 +106,9 @@ class UserEntry {
         posterPath: map['posterPath'],
         mediaType: map['mediaType'] ?? 'movie',
         genre: map['genre'] ?? 'Diğer',
+        genres: map['genres'] != null
+            ? List<String>.from(map['genres'] as List)
+            : [if (map['genre'] != null) map['genre'].toString()],
         userRating: (map['userRating'] ?? 0).toDouble(),
         note: map['note'] ?? '',
         status: WatchStatusX.fromName(map['status'] ?? 'watchlist'),
