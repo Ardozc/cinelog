@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../data/sort_options.dart';
 import '../models/user_entry.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/genre_filter_chips.dart';
 import '../widgets/movie_card.dart';
+import '../widgets/sort_button.dart';
 import 'detail_screen.dart';
 
 /// Ana sayfa: karsilama, arama kutusu, kategori filtreleri ve kullanicinin listesi.
@@ -28,6 +30,7 @@ class _HomeScreenState extends State<HomeScreen> {
   Set<String> _selectedGenres = {};
   final _searchController = TextEditingController();
   String _query = '';
+  String _sortOption = sortOptions.first;
 
   @override
   void dispose() {
@@ -35,12 +38,15 @@ class _HomeScreenState extends State<HomeScreen> {
     super.dispose();
   }
 
-  List<UserEntry> get _filtered => StorageService.byCategory(_category)
-      .where((e) => StorageService.matchesGenres(e, _selectedGenres))
-      .where((e) =>
-          _query.isEmpty ||
-          e.title.toLowerCase().contains(_query.toLowerCase()))
-      .toList();
+  List<UserEntry> get _filtered {
+    final filtered = StorageService.byCategory(_category)
+        .where((e) => StorageService.matchesGenres(e, _selectedGenres))
+        .where((e) =>
+            _query.isEmpty ||
+            e.title.toLowerCase().contains(_query.toLowerCase()))
+        .toList();
+    return sortEntries(filtered, _sortOption);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,17 +175,28 @@ class _HomeScreenState extends State<HomeScreen> {
                       const SizedBox(height: 20),
                       SizedBox(
                         height: 40,
-                        child: ListView.separated(
-                          scrollDirection: Axis.horizontal,
-                          itemCount: _categories.length,
-                          separatorBuilder: (_, __) =>
-                              const SizedBox(width: 10),
-                          itemBuilder: (_, i) => CategoryChip(
-                            label: _categories[i],
-                            selected: _category == _categories[i],
-                            onTap: () =>
-                                setState(() => _category = _categories[i]),
-                          ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ListView.separated(
+                                scrollDirection: Axis.horizontal,
+                                itemCount: _categories.length,
+                                separatorBuilder: (_, __) =>
+                                    const SizedBox(width: 10),
+                                itemBuilder: (_, i) => CategoryChip(
+                                  label: _categories[i],
+                                  selected: _category == _categories[i],
+                                  onTap: () => setState(
+                                      () => _category = _categories[i]),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(width: 10),
+                            SortButton(
+                              value: _sortOption,
+                              onChanged: (v) => setState(() => _sortOption = v),
+                            ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 12),

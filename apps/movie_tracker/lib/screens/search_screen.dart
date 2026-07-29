@@ -225,6 +225,8 @@ class _SearchScreenState extends State<SearchScreen> {
           mediaType: details.mediaType,
           genre: details.genres.isNotEmpty ? details.genres.first : 'Diğer',
           genres: details.genres,
+          releaseDate: details.releaseDate,
+          tmdbRating: details.voteAverage,
         ),
       );
 

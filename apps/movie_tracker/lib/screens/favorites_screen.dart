@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import '../data/sort_options.dart';
 import '../models/user_entry.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 import '../widgets/category_chip.dart';
 import '../widgets/genre_filter_chips.dart';
 import '../widgets/movie_card.dart';
+import '../widgets/sort_button.dart';
 import 'detail_screen.dart';
 
 /// Kullanıcının favori olarak işaretlediği film ve dizileri listeler.
@@ -19,6 +21,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
   final _searchController = TextEditingController();
   String _filter = 'Tümü';
   Set<String> _selectedGenres = {};
+  String _sortOption = sortOptions.first;
 
   static const _filters = ['Tümü', 'Film', 'Dizi'];
 
@@ -27,7 +30,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
 
   List<UserEntry> get _filteredFavorites {
     final query = _searchController.text.trim().toLowerCase();
-    return _favorites.where((entry) {
+    final filtered = _favorites.where((entry) {
       final matchesQuery =
           query.isEmpty || entry.title.toLowerCase().contains(query);
       final matchesFilter = switch (_filter) {
@@ -38,6 +41,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
       final matchesGenre = StorageService.matchesGenres(entry, _selectedGenres);
       return matchesQuery && matchesFilter && matchesGenre;
     }).toList();
+    return sortEntries(filtered, _sortOption);
   }
 
   @override
@@ -84,19 +88,32 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                         const SizedBox(height: 16),
                         SizedBox(
                           height: 40,
-                          child: ListView.separated(
-                            scrollDirection: Axis.horizontal,
-                            itemCount: _filters.length,
-                            separatorBuilder: (_, __) =>
-                                const SizedBox(width: 10),
-                            itemBuilder: (_, index) {
-                              final label = _filters[index];
-                              return CategoryChip(
-                                label: label,
-                                selected: _filter == label,
-                                onTap: () => setState(() => _filter = label),
-                              );
-                            },
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: ListView.separated(
+                                  scrollDirection: Axis.horizontal,
+                                  itemCount: _filters.length,
+                                  separatorBuilder: (_, __) =>
+                                      const SizedBox(width: 10),
+                                  itemBuilder: (_, index) {
+                                    final label = _filters[index];
+                                    return CategoryChip(
+                                      label: label,
+                                      selected: _filter == label,
+                                      onTap: () =>
+                                          setState(() => _filter = label),
+                                    );
+                                  },
+                                ),
+                              ),
+                              const SizedBox(width: 10),
+                              SortButton(
+                                value: _sortOption,
+                                onChanged: (v) =>
+                                    setState(() => _sortOption = v),
+                              ),
+                            ],
                           ),
                         ),
                         const SizedBox(height: 12),

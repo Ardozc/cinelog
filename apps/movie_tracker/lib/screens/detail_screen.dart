@@ -92,6 +92,9 @@ class _DetailScreenState extends State<DetailScreen>
   Future<void> _addToList() async {
     final m = _movie;
     if (m == null) return;
+    // Zaten listede olan bir yapim guncelleniyorsa, listeye eklenme tarihi
+    // korunur; aksi halde siralamada "yeni eklenmis" gibi ust siraya cikar.
+    final existing = StorageService.get(m.id);
     final entry = UserEntry(
       movieId: m.id,
       title: m.title,
@@ -99,6 +102,8 @@ class _DetailScreenState extends State<DetailScreen>
       mediaType: m.mediaType,
       genre: m.genres.isNotEmpty ? m.genres.first : 'Diğer',
       genres: m.genres,
+      releaseDate: m.releaseDate,
+      tmdbRating: m.voteAverage,
       userRating: _rating,
       note: _noteController.text,
       status: _status,
@@ -106,6 +111,7 @@ class _DetailScreenState extends State<DetailScreen>
       completedAt: _completedAt,
       droppedAt: _droppedAt,
       favorite: _favorite,
+      addedAt: existing?.addedAt,
     );
     await StorageService.save(entry);
     setState(() => _justAdded = true);

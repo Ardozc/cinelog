@@ -11,6 +11,8 @@ class UserEntry {
   final String genre; // baskin tur - kart etiketi ve istatistik icin
   final List<String>
       genres; // TMDb'deki tum turler - coklu tur filtrelemesi icin
+  final String releaseDate; // TMDb'den gelen cikis tarihi - siralama icin
+  final double tmdbRating; // TMDb'den gelen puan - siralama icin
   final double userRating; // 0-10
   final String note;
   final WatchStatus status;
@@ -27,6 +29,8 @@ class UserEntry {
     required this.mediaType,
     this.genre = 'Diğer',
     this.genres = const [],
+    this.releaseDate = '',
+    this.tmdbRating = 0,
     this.userRating = 0,
     this.note = '',
     this.status = WatchStatus.watchlist,
@@ -72,6 +76,8 @@ class UserEntry {
       mediaType: mediaType,
       genre: genre,
       genres: genres,
+      releaseDate: releaseDate,
+      tmdbRating: tmdbRating,
       userRating: userRating ?? this.userRating,
       note: note ?? this.note,
       status: status ?? this.status,
@@ -90,6 +96,8 @@ class UserEntry {
         'mediaType': mediaType,
         'genre': genre,
         'genres': genres,
+        'releaseDate': releaseDate,
+        'tmdbRating': tmdbRating,
         'userRating': userRating,
         'note': note,
         'status': status.name,
@@ -109,6 +117,8 @@ class UserEntry {
         genres: map['genres'] != null
             ? List<String>.from(map['genres'] as List)
             : [if (map['genre'] != null) map['genre'].toString()],
+        releaseDate: map['releaseDate'] ?? '',
+        tmdbRating: (map['tmdbRating'] ?? 0).toDouble(),
         userRating: (map['userRating'] ?? 0).toDouble(),
         note: map['note'] ?? '',
         status: WatchStatusX.fromName(map['status'] ?? 'watchlist'),
