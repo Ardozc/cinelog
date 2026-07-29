@@ -1,7 +1,9 @@
 import 'package:fl_chart/fl_chart.dart';
 import 'package:flutter/material.dart';
+import '../data/genre_stats.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
+import 'genre_detail_screen.dart';
 
 /// Istatistik sayfasi: donut (tur dagilimi), bar (aylik) ve line (haftalik) grafikler.
 class StatisticsScreen extends StatelessWidget {
@@ -13,14 +15,6 @@ class StatisticsScreen extends StatelessWidget {
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
     final textSecondary =
         isDark ? AppColors.darkTextSecondary : AppColors.lightTextSecondary;
-
-    final palette = [
-      primary,
-      AppColors.secondary,
-      AppColors.accent,
-      AppColors.statusCompleted,
-      AppColors.statusDropped
-    ];
 
     return ValueListenableBuilder<int>(
       valueListenable: StorageService.changes,
@@ -76,74 +70,7 @@ class StatisticsScreen extends StatelessWidget {
                 subtitle: 'En çok izlenen tür: ${StorageService.topGenre}',
                 child: genreDist.isEmpty
                     ? _EmptyChart()
-                    : SizedBox(
-                        height: 180,
-                        child: Row(
-                          children: [
-                            Expanded(
-                              child: PieChart(
-                                PieChartData(
-                                  sectionsSpace: 3,
-                                  centerSpaceRadius: 42,
-                                  sections: genreDist.entries
-                                      .toList()
-                                      .asMap()
-                                      .entries
-                                      .map((e) {
-                                    final i = e.key;
-                                    final entry = e.value;
-                                    return PieChartSectionData(
-                                      value: entry.value.toDouble(),
-                                      color: palette[i % palette.length],
-                                      title: '',
-                                      radius: 26,
-                                    );
-                                  }).toList(),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: genreDist.entries
-                                    .toList()
-                                    .asMap()
-                                    .entries
-                                    .take(5)
-                                    .map((e) {
-                                  final i = e.key;
-                                  final entry = e.value;
-                                  return Padding(
-                                    padding:
-                                        const EdgeInsets.symmetric(vertical: 4),
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                            width: 10,
-                                            height: 10,
-                                            decoration: BoxDecoration(
-                                                color:
-                                                    palette[i % palette.length],
-                                                shape: BoxShape.circle)),
-                                        const SizedBox(width: 8),
-                                        Expanded(
-                                            child: Text(entry.key,
-                                                style: Theme.of(context)
-                                                    .textTheme
-                                                    .bodyMedium,
-                                                overflow:
-                                                    TextOverflow.ellipsis)),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
+                    : _GenreDistribution(distribution: genreDist),
               ),
               const SizedBox(height: 18),
 
@@ -350,6 +277,142 @@ class _EmptyChart extends StatelessWidget {
       child: Center(
           child: Text('Henüz veri yok',
               style: Theme.of(context).textTheme.bodyMedium)),
+    );
+  }
+}
+
+/// Tur dagilimi karti icerigi: donut grafik (ortada toplam icerik sayisiyla),
+/// altinda en cok izlenen turlerin ozet listesi ve tum turleri gosteren
+/// detay sayfasina goturen buton.
+class _GenreDistribution extends StatelessWidget {
+  final Map<String, int> distribution;
+
+  const _GenreDistribution({required this.distribution});
+
+  @override
+  Widget build(BuildContext context) {
+    final stats = topGenreStats(distribution);
+    final total = distribution.values.fold<int>(0, (a, b) => a + b);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SizedBox(
+          height: 200,
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              PieChart(
+                PieChartData(
+                  sectionsSpace: 3,
+                  centerSpaceRadius: 58,
+                  sections: [
+                    for (final s in stats)
+                      PieChartSectionData(
+                        value: s.count.toDouble(),
+                        color: s.color,
+                        title: '',
+                        radius: 28,
+                      ),
+                  ],
+                ),
+              ),
+              Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text('$total',
+                      style: Theme.of(context).textTheme.headlineMedium),
+                  Text('İçerik', style: Theme.of(context).textTheme.bodyMedium),
+                ],
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 20),
+        for (final s in stats) _GenreSummaryRow(stat: s),
+        const SizedBox(height: 14),
+        _ViewAllGenresButton(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GenreDetailScreen(distribution: distribution),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _GenreSummaryRow extends StatelessWidget {
+  final GenreStat stat;
+
+  const _GenreSummaryRow({required this.stat});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 5),
+      child: Row(
+        children: [
+          Container(
+            width: 10,
+            height: 10,
+            decoration:
+                BoxDecoration(color: stat.color, shape: BoxShape.circle),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(
+              stat.name,
+              style: Theme.of(context).textTheme.bodyLarge,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          Text(
+            '${stat.count} (${stat.percentLabel})',
+            style: Theme.of(context).textTheme.labelLarge,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ViewAllGenresButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _ViewAllGenresButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(14),
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        decoration: BoxDecoration(
+          color: primary.withValues(alpha: 0.1),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Tüm Türleri Gör',
+              style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                    color: primary,
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+            const SizedBox(width: 6),
+            Icon(Icons.arrow_forward_rounded, size: 16, color: primary),
+          ],
+        ),
+      ),
     );
   }
 }
