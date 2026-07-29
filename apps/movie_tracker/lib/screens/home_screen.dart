@@ -9,13 +9,11 @@ import 'detail_screen.dart';
 
 /// Ana sayfa: karsilama, arama kutusu, kategori filtreleri ve kullanicinin listesi.
 class HomeScreen extends StatefulWidget {
-  final VoidCallback onSearchTap;
   final VoidCallback onProfileTap;
   final VoidCallback onNotificationsTap;
 
   const HomeScreen({
     super.key,
-    required this.onSearchTap,
     required this.onProfileTap,
     required this.onNotificationsTap,
   });
@@ -28,9 +26,20 @@ class _HomeScreenState extends State<HomeScreen> {
   String _category = 'Hepsi';
   final _categories = const ['Hepsi', 'Film', 'Dizi'];
   Set<String> _selectedGenres = {};
+  final _searchController = TextEditingController();
+  String _query = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   List<UserEntry> get _filtered => StorageService.byCategory(_category)
       .where((e) => StorageService.matchesGenres(e, _selectedGenres))
+      .where((e) =>
+          _query.isEmpty ||
+          e.title.toLowerCase().contains(_query.toLowerCase()))
       .toList();
 
   @override
@@ -103,35 +112,58 @@ class _HomeScreenState extends State<HomeScreen> {
                         ],
                       ),
                       const SizedBox(height: 20),
-                      InkWell(
-                        onTap: widget.onSearchTap,
-                        borderRadius: BorderRadius.circular(18),
-                        child: Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 18, vertical: 16),
-                          decoration: BoxDecoration(
-                            color: Theme.of(context).cardColor,
-                            borderRadius: BorderRadius.circular(18),
-                            boxShadow: [
-                              BoxShadow(
-                                  color: Colors.black
-                                      .withValues(alpha: isDark ? 0.25 : 0.04),
-                                  blurRadius: 12,
-                                  offset: const Offset(0, 4)),
-                            ],
-                          ),
-                          child: Row(
-                            children: [
-                              Icon(Icons.search_rounded,
-                                  color: Theme.of(context)
-                                      .textTheme
-                                      .bodyMedium
-                                      ?.color),
-                              const SizedBox(width: 12),
-                              Text('Film veya dizi ara...',
-                                  style: Theme.of(context).textTheme.bodyLarge),
-                            ],
-                          ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 18),
+                        decoration: BoxDecoration(
+                          color: Theme.of(context).cardColor,
+                          borderRadius: BorderRadius.circular(18),
+                          boxShadow: [
+                            BoxShadow(
+                                color: Colors.black
+                                    .withValues(alpha: isDark ? 0.25 : 0.04),
+                                blurRadius: 12,
+                                offset: const Offset(0, 4)),
+                          ],
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.search_rounded,
+                                color: Theme.of(context)
+                                    .textTheme
+                                    .bodyMedium
+                                    ?.color),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: TextField(
+                                controller: _searchController,
+                                onChanged: (v) => setState(() => _query = v),
+                                style: Theme.of(context).textTheme.bodyLarge,
+                                decoration: InputDecoration(
+                                  hintText: 'Film veya dizi ara...',
+                                  hintStyle:
+                                      Theme.of(context).textTheme.bodyLarge,
+                                  border: InputBorder.none,
+                                  isDense: true,
+                                  contentPadding:
+                                      const EdgeInsets.symmetric(vertical: 16),
+                                ),
+                              ),
+                            ),
+                            if (_query.isNotEmpty)
+                              GestureDetector(
+                                onTap: () => setState(() {
+                                  _searchController.clear();
+                                  _query = '';
+                                }),
+                                behavior: HitTestBehavior.opaque,
+                                child: Icon(Icons.close_rounded,
+                                    size: 20,
+                                    color: Theme.of(context)
+                                        .textTheme
+                                        .bodyMedium
+                                        ?.color),
+                              ),
+                          ],
                         ),
                       ),
                       const SizedBox(height: 20),

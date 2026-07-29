@@ -48,7 +48,6 @@ class _MainShellState extends State<MainShell> {
     final primary = isDark ? AppColors.primaryDark : AppColors.primary;
     final screens = [
       HomeScreen(
-        onSearchTap: () => _openSearch(focusField: true),
         onProfileTap: _openProfile,
         onNotificationsTap: _openNotifications,
       ),
