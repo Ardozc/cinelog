@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../data/genre_stats.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
+import '../widgets/category_chip.dart';
 import 'genre_detail_screen.dart';
 
 /// Istatistik sayfasi: donut (tur dagilimi), bar (aylik) ve line (haftalik) grafikler.
@@ -19,7 +20,7 @@ class StatisticsScreen extends StatelessWidget {
     return ValueListenableBuilder<int>(
       valueListenable: StorageService.changes,
       builder: (context, _, __) {
-        final genreDist = StorageService.genreDistribution;
+        final hasGenreData = StorageService.genreDistribution().isNotEmpty;
         final monthly = StorageService.monthlyCompleted;
         final weekly = StorageService.weeklyActivity;
         final thisMonthCount =
@@ -67,10 +68,8 @@ class StatisticsScreen extends StatelessWidget {
               // Donut - tur dagilimi
               _ChartCard(
                 title: 'Tür Dağılımı',
-                subtitle: 'En çok izlenen tür: ${StorageService.topGenre}',
-                child: genreDist.isEmpty
-                    ? _EmptyChart()
-                    : _GenreDistribution(distribution: genreDist),
+                child:
+                    hasGenreData ? const _GenreDistribution() : _EmptyChart(),
               ),
               const SizedBox(height: 18),
 
@@ -235,10 +234,9 @@ class _MiniStat extends StatelessWidget {
 
 class _ChartCard extends StatelessWidget {
   final String title;
-  final String subtitle;
+  final String? subtitle;
   final Widget child;
-  const _ChartCard(
-      {required this.title, required this.subtitle, required this.child});
+  const _ChartCard({required this.title, this.subtitle, required this.child});
 
   @override
   Widget build(BuildContext context) {
@@ -259,8 +257,10 @@ class _ChartCard extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(title, style: Theme.of(context).textTheme.titleLarge),
-          const SizedBox(height: 4),
-          Text(subtitle, style: Theme.of(context).textTheme.bodyMedium),
+          if (subtitle != null) ...[
+            const SizedBox(height: 4),
+            Text(subtitle!, style: Theme.of(context).textTheme.bodyMedium),
+          ],
           const SizedBox(height: 16),
           child,
         ],
@@ -281,64 +281,104 @@ class _EmptyChart extends StatelessWidget {
   }
 }
 
-/// Tur dagilimi karti icerigi: donut grafik (ortada toplam icerik sayisiyla),
-/// altinda en cok izlenen turlerin ozet listesi ve tum turleri gosteren
-/// detay sayfasina goturen buton.
-class _GenreDistribution extends StatelessWidget {
-  final Map<String, int> distribution;
+/// Tur dagilimi karti icerigi: Hepsi/Film/Dizi medya filtresi, donut grafik
+/// (ortada toplam icerik sayisiyla), altinda en cok izlenen turlerin ozet
+/// listesi ve tum turleri gosteren detay sayfasina goturen buton. Secili
+/// medya filtresi tum bu icerigi (ve "Tüm Türleri Gör" ile acilan detay
+/// sayfasini) belirler.
+class _GenreDistribution extends StatefulWidget {
+  const _GenreDistribution();
 
-  const _GenreDistribution({required this.distribution});
+  @override
+  State<_GenreDistribution> createState() => _GenreDistributionState();
+}
+
+class _GenreDistributionState extends State<_GenreDistribution> {
+  static const _mediaTypes = ['Hepsi', 'Film', 'Dizi'];
+  String _mediaType = 'Hepsi';
+
+  /// UI etiketini StorageService'in bekledigi TMDb medya tipine cevirir.
+  String? get _mediaTypeFilter => switch (_mediaType) {
+        'Film' => 'movie',
+        'Dizi' => 'tv',
+        _ => null,
+      };
 
   @override
   Widget build(BuildContext context) {
+    final distribution =
+        StorageService.genreDistribution(mediaType: _mediaTypeFilter);
     final stats = topGenreStats(distribution);
     final total = distribution.values.fold<int>(0, (a, b) => a + b);
+    final topGenreName = StorageService.topGenre(mediaType: _mediaTypeFilter);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SizedBox(
-          height: 200,
-          child: Stack(
-            alignment: Alignment.center,
-            children: [
-              PieChart(
-                PieChartData(
-                  sectionsSpace: 3,
-                  centerSpaceRadius: 58,
-                  sections: [
-                    for (final s in stats)
-                      PieChartSectionData(
-                        value: s.count.toDouble(),
-                        color: s.color,
-                        title: '',
-                        radius: 28,
-                      ),
-                  ],
-                ),
-              ),
-              Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text('$total',
-                      style: Theme.of(context).textTheme.headlineMedium),
-                  Text('İçerik', style: Theme.of(context).textTheme.bodyMedium),
-                ],
-              ),
-            ],
-          ),
-        ),
-        const SizedBox(height: 20),
-        for (final s in stats) _GenreSummaryRow(stat: s),
-        const SizedBox(height: 14),
-        _ViewAllGenresButton(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => GenreDetailScreen(distribution: distribution),
+          height: 40,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: _mediaTypes.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 10),
+            itemBuilder: (_, i) => CategoryChip(
+              label: _mediaTypes[i],
+              selected: _mediaType == _mediaTypes[i],
+              onTap: () => setState(() => _mediaType = _mediaTypes[i]),
             ),
           ),
         ),
+        const SizedBox(height: 16),
+        if (distribution.isEmpty)
+          _EmptyChart()
+        else ...[
+          Text('En çok izlenen tür: $topGenreName',
+              style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 12),
+          SizedBox(
+            height: 200,
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                PieChart(
+                  PieChartData(
+                    sectionsSpace: 3,
+                    centerSpaceRadius: 58,
+                    sections: [
+                      for (final s in stats)
+                        PieChartSectionData(
+                          value: s.count.toDouble(),
+                          color: s.color,
+                          title: '',
+                          radius: 28,
+                        ),
+                    ],
+                  ),
+                ),
+                Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Text('$total',
+                        style: Theme.of(context).textTheme.headlineMedium),
+                    Text('İçerik',
+                        style: Theme.of(context).textTheme.bodyMedium),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 20),
+          for (final s in stats) _GenreSummaryRow(stat: s),
+          const SizedBox(height: 14),
+          _ViewAllGenresButton(
+            onTap: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => GenreDetailScreen(distribution: distribution),
+              ),
+            ),
+          ),
+        ],
       ],
     );
   }

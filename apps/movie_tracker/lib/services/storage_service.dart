@@ -89,11 +89,8 @@ class StorageService {
     return rated.map((e) => e.userRating).reduce((a, b) => a > b ? a : b);
   }
 
-  static String get topGenre {
-    final counts = <String, int>{};
-    for (final e in getAll()) {
-      counts[e.genre] = (counts[e.genre] ?? 0) + 1;
-    }
+  static String topGenre({String? mediaType}) {
+    final counts = genreDistribution(mediaType: mediaType);
     if (counts.isEmpty) return '—';
     return counts.entries.reduce((a, b) => a.value >= b.value ? a : b).key;
   }
@@ -108,9 +105,12 @@ class StorageService {
     return total;
   }
 
-  static Map<String, int> get genreDistribution {
+  /// [mediaType] verilirse ('movie'/'tv') sadece o medya tipine ait
+  /// kayitlarin tur dagilimini dondurur; null ise tumu (Hepsi) dahil edilir.
+  static Map<String, int> genreDistribution({String? mediaType}) {
     final counts = <String, int>{};
     for (final e in getAll()) {
+      if (mediaType != null && e.mediaType != mediaType) continue;
       counts[e.genre] = (counts[e.genre] ?? 0) + 1;
     }
     return counts;
