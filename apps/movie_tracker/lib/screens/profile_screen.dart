@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/user_entry.dart';
 import '../models/watch_status.dart';
+import '../services/auth_service.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
 
@@ -111,11 +112,36 @@ class ProfileScreen extends StatelessWidget {
                         ))
                     .toList(),
               ),
+              const SizedBox(height: 14),
+              _SignOutButton(onTap: () => _confirmSignOut(context)),
             ],
           ),
         );
       },
     );
+  }
+
+  Future<void> _confirmSignOut(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Çıkış yap'),
+        content: const Text('Hesabından çıkış yapmak istediğine emin misin?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Çıkış Yap'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed == true) {
+      await AuthService.signOut();
+    }
   }
 }
 
@@ -240,6 +266,52 @@ class _StatCard extends StatelessWidget {
             overflow: TextOverflow.ellipsis,
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SignOutButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _SignOutButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final error = Theme.of(context).colorScheme.error;
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.logout_rounded, size: 20, color: error),
+              const SizedBox(width: 12),
+              Text(
+                'Çıkış Yap',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(color: error),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
