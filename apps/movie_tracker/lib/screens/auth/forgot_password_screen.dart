@@ -54,8 +54,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
   Future<void> _confirm() async {
     final code = _codeController.text.trim();
     final newPassword = _newPasswordController.text;
-    if (code.length != 6) {
-      setState(() => _error = 'Kod 6 haneli olmalı.');
+    if (code.isEmpty) {
+      setState(() => _error = 'Kodu gir.');
       return;
     }
     if (newPassword.length < 6) {
@@ -122,7 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                 TextField(
                   controller: _codeController,
                   keyboardType: TextInputType.number,
-                  maxLength: 6,
+                  maxLength: 12,
                   decoration: const InputDecoration(
                     hintText: 'Doğrulama kodu',
                     prefixIcon: Icon(Icons.pin_outlined),

@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 
-/// Kayit sonrasi emaile gelen 6 haneli kodu dogrulama ekrani.
+/// Kayit sonrasi emaile gelen dogrulama kodunu (Supabase OTP) girme ekrani.
+/// Kod uzunlugu Supabase proje ayarina gore degisebildigi icin sabit
+/// haneli bir kisit uygulanmiyor.
 class VerifyEmailScreen extends StatefulWidget {
   final String email;
   const VerifyEmailScreen({super.key, required this.email});
@@ -25,8 +27,8 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
 
   Future<void> _verify() async {
     final code = _codeController.text.trim();
-    if (code.length != 6) {
-      setState(() => _error = 'Kod 6 haneli olmalı.');
+    if (code.isEmpty) {
+      setState(() => _error = 'Kodu gir.');
       return;
     }
     setState(() {
@@ -78,17 +80,17 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
               Icon(Icons.mark_email_read_outlined,
                   size: 48, color: Theme.of(context).colorScheme.primary),
               const SizedBox(height: 16),
-              Text('${widget.email} adresine gönderilen 6 haneli kodu gir',
+              Text('${widget.email} adresine gönderilen kodu gir',
                   style: Theme.of(context).textTheme.bodyMedium),
               const SizedBox(height: 24),
               TextField(
                 controller: _codeController,
                 keyboardType: TextInputType.number,
                 textAlign: TextAlign.center,
-                maxLength: 6,
+                maxLength: 12,
                 style: Theme.of(context).textTheme.headlineMedium,
                 decoration: const InputDecoration(
-                  hintText: '000000',
+                  hintText: 'Kod',
                   counterText: '',
                 ),
               ),
