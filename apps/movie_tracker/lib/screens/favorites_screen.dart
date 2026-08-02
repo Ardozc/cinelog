@@ -163,7 +163,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                               },
                               onFavoriteToggle: () async {
                                 await StorageService.toggleFavorite(
-                                    entry.movieId);
+                                    entry.movieId, entry.mediaType);
                                 if (mounted) setState(() {});
                               },
                               onMenuTap: () => _showMenu(context, entry),
@@ -223,7 +223,7 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                   style: TextStyle(color: AppColors.statusDropped),
                 ),
                 onTap: () async {
-                  await StorageService.delete(entry.movieId);
+                  await StorageService.delete(entry.movieId, entry.mediaType);
                   if (context.mounted) Navigator.pop(context);
                   if (mounted) setState(() {});
                 },

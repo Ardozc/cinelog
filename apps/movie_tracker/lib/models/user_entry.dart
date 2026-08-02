@@ -2,7 +2,9 @@ import 'watch_status.dart';
 
 /// Kullanicinin listesine ekledigi bir yapim icin kaydettigi kisisel veri.
 /// TMDb API'sinden gelen bilgiyle kullanicinin kendi puan/not/durum bilgisi
-/// birlestirilir. Hive box icinde Map<String,dynamic> olarak saklanir.
+/// birlestirilir. Supabase'deki `entries` tablosunun bir satirina karsilik
+/// gelir; toMap/fromMap anahtarlari o tablonun sutun adlarina (snake_case)
+/// birebir eslenir.
 class UserEntry {
   final int movieId;
   final String title;
@@ -90,50 +92,50 @@ class UserEntry {
   }
 
   Map<String, dynamic> toMap() => {
-        'movieId': movieId,
+        'movie_id': movieId,
         'title': title,
-        'posterPath': posterPath,
-        'mediaType': mediaType,
+        'poster_path': posterPath,
+        'media_type': mediaType,
         'genre': genre,
         'genres': genres,
-        'releaseDate': releaseDate,
-        'tmdbRating': tmdbRating,
-        'userRating': userRating,
+        'release_date': releaseDate,
+        'tmdb_rating': tmdbRating,
+        'user_rating': userRating,
         'note': note,
         'status': status.name,
-        'startedAt': startedAt?.toIso8601String(),
-        'completedAt': completedAt?.toIso8601String(),
-        'droppedAt': droppedAt?.toIso8601String(),
+        'started_at': startedAt?.toIso8601String(),
+        'completed_at': completedAt?.toIso8601String(),
+        'dropped_at': droppedAt?.toIso8601String(),
         'favorite': favorite,
-        'addedAt': addedAt.toIso8601String(),
+        'added_at': addedAt.toIso8601String(),
       };
 
   factory UserEntry.fromMap(Map map) => UserEntry(
-        movieId: map['movieId'],
+        movieId: map['movie_id'],
         title: map['title'],
-        posterPath: map['posterPath'],
-        mediaType: map['mediaType'] ?? 'movie',
+        posterPath: map['poster_path'],
+        mediaType: map['media_type'] ?? 'movie',
         genre: map['genre'] ?? 'Diğer',
         genres: map['genres'] != null
             ? List<String>.from(map['genres'] as List)
             : [if (map['genre'] != null) map['genre'].toString()],
-        releaseDate: map['releaseDate'] ?? '',
-        tmdbRating: (map['tmdbRating'] ?? 0).toDouble(),
-        userRating: (map['userRating'] ?? 0).toDouble(),
+        releaseDate: map['release_date'] ?? '',
+        tmdbRating: (map['tmdb_rating'] ?? 0).toDouble(),
+        userRating: (map['user_rating'] ?? 0).toDouble(),
         note: map['note'] ?? '',
         status: WatchStatusX.fromName(map['status'] ?? 'watchlist'),
-        startedAt: map['startedAt'] != null
-            ? DateTime.tryParse(map['startedAt'])
+        startedAt: map['started_at'] != null
+            ? DateTime.tryParse(map['started_at'])
             : null,
-        completedAt: map['completedAt'] != null
-            ? DateTime.tryParse(map['completedAt'])
+        completedAt: map['completed_at'] != null
+            ? DateTime.tryParse(map['completed_at'])
             : null,
-        droppedAt: map['droppedAt'] != null
-            ? DateTime.tryParse(map['droppedAt'])
+        droppedAt: map['dropped_at'] != null
+            ? DateTime.tryParse(map['dropped_at'])
             : null,
         favorite: map['favorite'] ?? false,
-        addedAt: map['addedAt'] != null
-            ? DateTime.tryParse(map['addedAt']) ?? DateTime.now()
+        addedAt: map['added_at'] != null
+            ? DateTime.tryParse(map['added_at']) ?? DateTime.now()
             : DateTime.now(),
       );
 }

@@ -395,7 +395,7 @@ class _SearchScreenState extends State<SearchScreen> {
           final movie = movies[i - headerOffset];
           return SearchResultCard(
             movie: movie,
-            isAdded: StorageService.get(movie.id) != null,
+            isAdded: StorageService.get(movie.id, movie.mediaType) != null,
             onAdd: () => _addResult(movie),
             onTap: () => _openDetail(movie),
           );

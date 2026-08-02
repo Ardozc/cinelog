@@ -51,7 +51,7 @@ class _DetailScreenState extends State<DetailScreen>
   }
 
   void _loadExistingEntry() {
-    final existing = StorageService.get(widget.movieId);
+    final existing = StorageService.get(widget.movieId, widget.mediaType);
     if (existing != null) {
       _rating = existing.userRating;
       _noteController.text = existing.note;
@@ -94,7 +94,7 @@ class _DetailScreenState extends State<DetailScreen>
     if (m == null) return;
     // Zaten listede olan bir yapim guncelleniyorsa, listeye eklenme tarihi
     // korunur; aksi halde siralamada "yeni eklenmis" gibi ust siraya cikar.
-    final existing = StorageService.get(m.id);
+    final existing = StorageService.get(m.id, m.mediaType);
     final entry = UserEntry(
       movieId: m.id,
       title: m.title,

@@ -1,52 +1,85 @@
 import 'package:flutter/foundation.dart';
-import 'package:hive_flutter/hive_flutter.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user_entry.dart';
 import '../models/watch_status.dart';
 
-/// Kullanicinin kisisel listesini (puan, not, durum) cihazda saklar.
-/// Hive kullanildigi icin kod uretimi (build_runner) gerekmez;
-/// veriler duz Map olarak kutuya yazilir.
+/// Kullanicinin kisisel listesini (puan, not, durum) Supabase'deki `entries`
+/// tablosunda saklar. Oturum acildiginda kullanicinin tum kayitlari tek
+/// seferde cekilip bellekte tutulur (eski Hive box'inin yerini alan basit
+/// bir onbellek); ekranlar hala senkron okuma yapar (getAll, get, vb.),
+/// sadece yazma islemleri (save/delete) arka planda Supabase'e gider.
 class StorageService {
   StorageService._();
 
-  static const String _boxName = 'user_entries';
-
-  static Box get _box => Hive.box(_boxName);
+  static List<UserEntry> _cache = [];
 
   /// Veri her degistiginde (ekleme/silme/favori) artar. Ekranlar bunu
   /// dinleyerek IndexedStack icinde bile anlik olarak yeniden cizilir.
   static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
-  static Future<void> init() async {
-    await Hive.initFlutter();
-    await Hive.openBox(_boxName);
+  static SupabaseClient get _client => Supabase.instance.client;
+  static String get _uid => _client.auth.currentUser!.id;
+
+  /// Oturum acildiginda (AuthGate) cagrilir: kullanicinin tum kayitlarini
+  /// Supabase'den cekip bellek onbellegini doldurur.
+  static Future<void> loadForCurrentUser() async {
+    final user = _client.auth.currentUser;
+    if (user == null) {
+      _cache = [];
+      changes.value++;
+      return;
+    }
+    final rows =
+        await _client.from('entries').select().eq('user_id', user.id);
+    _cache = (rows as List)
+        .map((row) => UserEntry.fromMap(Map<String, dynamic>.from(row as Map)))
+        .toList();
+    changes.value++;
+  }
+
+  /// Oturum kapandiginda (AuthGate) cagrilir: onbellek temizlenir.
+  static void clear() {
+    _cache = [];
+    changes.value++;
   }
 
   static List<UserEntry> getAll() {
-    return _box.values
-        .map((e) => UserEntry.fromMap(Map<String, dynamic>.from(e as Map)))
-        .toList()
-      ..sort((a, b) => b.addedAt.compareTo(a.addedAt));
+    final list = List<UserEntry>.from(_cache);
+    list.sort((a, b) => b.addedAt.compareTo(a.addedAt));
+    return list;
   }
 
-  static UserEntry? get(int movieId) {
-    final raw = _box.get(movieId.toString());
-    if (raw == null) return null;
-    return UserEntry.fromMap(Map<String, dynamic>.from(raw as Map));
+  static UserEntry? get(int movieId, String mediaType) {
+    for (final e in _cache) {
+      if (e.movieId == movieId && e.mediaType == mediaType) return e;
+    }
+    return null;
   }
 
   static Future<void> save(UserEntry entry) async {
-    await _box.put(entry.movieId.toString(), entry.toMap());
+    final row = entry.toMap()..['user_id'] = _uid;
+    await _client
+        .from('entries')
+        .upsert(row, onConflict: 'user_id,movie_id,media_type');
+    _cache.removeWhere(
+        (e) => e.movieId == entry.movieId && e.mediaType == entry.mediaType);
+    _cache.add(entry);
     changes.value++;
   }
 
-  static Future<void> delete(int movieId) async {
-    await _box.delete(movieId.toString());
+  static Future<void> delete(int movieId, String mediaType) async {
+    await _client.from('entries').delete().match({
+      'user_id': _uid,
+      'movie_id': movieId,
+      'media_type': mediaType,
+    });
+    _cache.removeWhere(
+        (e) => e.movieId == movieId && e.mediaType == mediaType);
     changes.value++;
   }
 
-  static Future<void> toggleFavorite(int movieId) async {
-    final entry = get(movieId);
+  static Future<void> toggleFavorite(int movieId, String mediaType) async {
+    final entry = get(movieId, mediaType);
     if (entry == null) return;
     await save(entry.copyWith(favorite: !entry.favorite));
   }

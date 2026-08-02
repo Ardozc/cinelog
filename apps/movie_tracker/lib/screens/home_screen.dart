@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             },
                             onFavoriteToggle: () async {
                               await StorageService.toggleFavorite(
-                                  entry.movieId);
+                                  entry.movieId, entry.mediaType);
                               setState(() {});
                             },
                             onMenuTap: () => _showMenu(context, entry),
@@ -290,7 +290,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 title: const Text('Listeden Kaldır',
                     style: TextStyle(color: AppColors.statusDropped)),
                 onTap: () async {
-                  await StorageService.delete(entry.movieId);
+                  await StorageService.delete(entry.movieId, entry.mediaType);
                   if (context.mounted) Navigator.pop(context);
                   setState(() {});
                 },
