@@ -11,13 +11,31 @@ class AuthService {
 
   static Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
 
+  /// [cinelog_signup_verified] bayragi hic yoksa (bu fix'ten once acilmis
+  /// hesap) kisitlama uygulamiyoruz; varsa true olmasi gerekiyor.
+  static bool isVerified(User? user) {
+    final metadata = user?.userMetadata;
+    if (metadata == null || !metadata.containsKey('cinelog_signup_verified')) {
+      return true;
+    }
+    return metadata['cinelog_signup_verified'] == true;
+  }
+
   static Future<void> signUp(
       String email, String password, String username) async {
     try {
       await _auth.signUp(
         email: email,
         password: password,
-        data: {'username': username},
+        // NOT: metadata anahtari kasitli olarak 'email_verified' DEGIL.
+        // GoTrue, user_metadata icindeki 'email_verified'/'phone_verified'
+        // alanlarini rezerve tutuyor ve email herhangi bir OTP turuyle
+        // (signup DAHIL recovery ile de) dogrulaninca bu alani kendisi
+        // otomatik true yapiyor - denenip dogrulandi. O yuzden kendi
+        // bayragimizi farkli bir isimle tutuyoruz ki sadece bizim
+        // verifySignupOtp cagrimiz onu true yapabilsin, recovery akisi
+        // dokunamasin.
+        data: {'username': username, 'cinelog_signup_verified': false},
       );
     } on AuthException catch (e) {
       throw _mapError(e);
@@ -35,6 +53,10 @@ class AuthService {
       await _auth.signInWithPassword(email: email, password: password);
     } on AuthException catch (e) {
       throw _mapError(e);
+    }
+    if (!isVerified(_auth.currentUser)) {
+      await _auth.signOut();
+      throw 'Email adresin henüz doğrulanmamış.';
     }
   }
 
@@ -73,6 +95,15 @@ class AuthService {
         email: email,
         token: token,
       );
+      try {
+        await _auth.updateUser(
+            UserAttributes(data: {'cinelog_signup_verified': true}));
+      } catch (_) {
+        // Metadata guncellemesi basarisiz olsa da OTP dogrulamasi tamamlandi;
+        // kullaniciyi hataya dusurmemek icin sessizce yut. Kullanici bir
+        // sonraki girişte tekrar engellenirse "Kodu tekrar gönder" ile
+        // yeniden dogrulayabilir.
+      }
     } on AuthException catch (e) {
       throw _mapError(e);
     }
@@ -135,8 +166,18 @@ class AuthService {
     if (msg.contains('password') && msg.contains('at least')) {
       return 'Şifre en az 6 karakter olmalı.';
     }
-    if (msg.contains('rate limit') || msg.contains('too many')) {
-      return 'Çok fazla deneme yaptın. Biraz sonra tekrar dene.';
+    if (msg.contains('rate limit') ||
+        msg.contains('too many') ||
+        msg.contains('security purposes')) {
+      // Supabase'in "For security purposes, you can only request this after
+      // 55 seconds." mesaji "rate limit"/"too many" gecmedigi icin ayri
+      // eslesme gerekiyordu; aksi halde bu mesaj ham Ingilizce olarak
+      // gosteriliyordu (kullanici "kod hic gelmiyor" saniyordu).
+      final match = RegExp(r'(\d+)\s*seconds?').firstMatch(msg);
+      final seconds = match?.group(1);
+      return seconds != null
+          ? 'Yeni kod için $seconds saniye bekle.'
+          : 'Çok fazla deneme yaptın. Biraz sonra tekrar dene.';
     }
     if (msg.contains('database error')) {
       return 'Bu kullanıcı adı alınmış olabilir. Farklı bir kullanıcı adı dene.';

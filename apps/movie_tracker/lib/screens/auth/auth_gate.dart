@@ -10,6 +10,12 @@ import 'login_screen.dart';
 /// Ayrica oturum acilinca/kapaninca StorageService'in Supabase onbellegini
 /// yukler/temizler (signedIn/initialSession -> yukle, signedOut -> temizle;
 /// tokenRefreshed gibi diger olaylarda gereksiz yeniden yukleme yapilmaz).
+///
+/// Dogrulanmamis (AuthService.isVerified == false) bir oturum hicbir zaman
+/// MainShell'e gecirilmiyor: AuthService.signIn zaten boyle bir oturumu
+/// hemen kapatiyor, ama o kapanana kadarki kisa surede bile MainShell'e
+/// gecip geri donmemek onemli - aksi halde LoginScreen widget'i bu geciste
+/// yok edilip yeniden olusturulur ve gosterilecek hata mesaji kaybolur.
 class AuthGate extends StatefulWidget {
   const AuthGate({super.key});
 
@@ -27,7 +33,11 @@ class _AuthGateState extends State<AuthGate> {
       switch (state.event) {
         case AuthChangeEvent.signedIn:
         case AuthChangeEvent.initialSession:
-          StorageService.loadForCurrentUser();
+          if (AuthService.isVerified(state.session?.user)) {
+            StorageService.loadForCurrentUser();
+          } else {
+            StorageService.clear();
+          }
           break;
         case AuthChangeEvent.signedOut:
           StorageService.clear();
@@ -51,7 +61,9 @@ class _AuthGateState extends State<AuthGate> {
       builder: (context, snapshot) {
         final session = snapshot.data?.session ??
             Supabase.instance.client.auth.currentSession;
-        if (session != null) return const MainShell();
+        if (session != null && AuthService.isVerified(session.user)) {
+          return const MainShell();
+        }
         return const LoginScreen();
       },
     );

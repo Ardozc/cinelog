@@ -19,7 +19,6 @@ class _LoginScreenState extends State<LoginScreen> {
   bool _loading = false;
   bool _obscure = true;
   String? _error;
-  bool _needsVerification = false;
 
   @override
   void dispose() {
@@ -38,19 +37,47 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() {
       _loading = true;
       _error = null;
-      _needsVerification = false;
     });
     try {
       await AuthService.signIn(identifier, password);
       // Basarili olursa AuthGate stream'i yakalayip MainShell'e gecer.
     } catch (e) {
-      setState(() {
-        _error = e.toString();
-        _needsVerification = _error!.contains('doğrulanmamış');
-      });
+      final message = e.toString();
+      if (message.contains('doğrulanmamış')) {
+        if (mounted) await _showVerificationDialog();
+      } else {
+        setState(() => _error = message);
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  /// Hesap dogrulanmamisken giris denendiginde gosterilen, iki secenekli
+  /// (Daha Sonra / Hesabini Dogrula) uyari. Inline hata metni yerine dialog
+  /// kullanmamizin nedeni: AuthGate'in oturum akisi kisa bir sure MainShell'e
+  /// gecip geri donebiliyor, bu da bu ekranin state'ini sifirlayabilir;
+  /// dialog kullanicinin dikkatini net bir sekilde cekiyor.
+  Future<void> _showVerificationDialog() async {
+    final verifyNow = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hesabın doğrulanmadı'),
+        content: const Text(
+            'Giriş yapabilmek için önce email adresine gönderilen kodla hesabını doğrulaman gerekiyor.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Daha Sonra'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: const Text('Hesabını Doğrula'),
+          ),
+        ],
+      ),
+    );
+    if (verifyNow == true) await _goToVerify();
   }
 
   Future<void> _goToVerify() async {
@@ -124,13 +151,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   Text(_error!,
                       style: TextStyle(
                           color: Theme.of(context).colorScheme.error)),
-                  if (_needsVerification) ...[
-                    const SizedBox(height: 8),
-                    TextButton(
-                      onPressed: _goToVerify,
-                      child: const Text('Doğrulama kodunu gir'),
-                    ),
-                  ],
                   const SizedBox(height: 8),
                 ],
                 const SizedBox(height: 8),

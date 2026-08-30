@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import '../../services/auth_service.dart';
 
@@ -19,11 +20,35 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
   bool _verified = false;
   String? _error;
   String? _info;
+  Timer? _cooldownTimer;
+  int _cooldown = 0;
 
   @override
   void dispose() {
     _codeController.dispose();
+    _cooldownTimer?.cancel();
     super.dispose();
+  }
+
+  /// Supabase ayni adrese art arda kod istegini varsayilan olarak 60
+  /// saniye geciktiriyor. Bu geri sayim, kullanicinin butona tekrar tekrar
+  /// basip her seferinde ayni rate-limit hatasini almasini (ve "mail hic
+  /// gelmiyor" sanmasini) onluyor.
+  void _startCooldown(int seconds) {
+    _cooldownTimer?.cancel();
+    setState(() => _cooldown = seconds);
+    _cooldownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      if (_cooldown <= 1) {
+        timer.cancel();
+        setState(() => _cooldown = 0);
+      } else {
+        setState(() => _cooldown--);
+      }
+    });
   }
 
   Future<void> _verify() async {
@@ -63,8 +88,13 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
     try {
       await AuthService.resendSignupOtp(widget.email);
       setState(() => _info = 'Kod tekrar gönderildi.');
+      _startCooldown(60);
     } catch (e) {
-      setState(() => _error = e.toString());
+      final message = e.toString();
+      setState(() => _error = message);
+      final match = RegExp(r'(\d+) saniye bekle').firstMatch(message);
+      final seconds = match != null ? int.tryParse(match.group(1)!) : null;
+      if (seconds != null) _startCooldown(seconds);
     } finally {
       if (mounted) setState(() => _resending = false);
     }
@@ -155,8 +185,12 @@ class _VerifyEmailScreenState extends State<VerifyEmailScreen> {
         ),
         const SizedBox(height: 12),
         TextButton(
-          onPressed: _resending ? null : _resend,
-          child: Text(_resending ? 'Gönderiliyor...' : 'Kodu tekrar gönder'),
+          onPressed: (_resending || _cooldown > 0) ? null : _resend,
+          child: Text(_resending
+              ? 'Gönderiliyor...'
+              : _cooldown > 0
+                  ? 'Kodu tekrar gönder ($_cooldown sn)'
+                  : 'Kodu tekrar gönder'),
         ),
       ],
     );
