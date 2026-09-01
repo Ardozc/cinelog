@@ -114,6 +114,8 @@ class ProfileScreen extends StatelessWidget {
               ),
               const SizedBox(height: 14),
               _SignOutButton(onTap: () => _confirmSignOut(context)),
+              const SizedBox(height: 10),
+              _DeleteAccountButton(onTap: () => _confirmDeleteAccount(context)),
             ],
           ),
         );
@@ -141,6 +143,51 @@ class ProfileScreen extends StatelessWidget {
     );
     if (confirmed == true) {
       await AuthService.signOut();
+    }
+  }
+
+  Future<void> _confirmDeleteAccount(BuildContext context) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Hesabı Sil'),
+        content: const Text(
+            'Hesabın ve tüm film/dizi arşivin kalıcı olarak silinecek. Bu işlem geri alınamaz. Devam etmek istiyor musun?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(false),
+            child: const Text('Vazgeç'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(true),
+            child: Text('Hesabımı Sil',
+                style: TextStyle(color: Theme.of(context).colorScheme.error)),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !context.mounted) return;
+
+    // Navigator'i onceden yakaliyoruz: hesap silinip AuthService.signOut
+    // cagrildiginda AuthGate MainShell'i (dolayisiyla bu ekrani) LoginScreen
+    // ile degistiriyor, o noktada orijinal `context` artik gecersiz olabilir.
+    final navigator = Navigator.of(context, rootNavigator: true);
+    navigator.push(PageRouteBuilder(
+      opaque: false,
+      pageBuilder: (_, __, ___) =>
+          const Center(child: CircularProgressIndicator()),
+    ));
+    String? error;
+    try {
+      await AuthService.deleteAccount();
+    } catch (e) {
+      error = e.toString();
+    }
+    navigator.pop();
+    if (error != null && context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Hesap silinemedi: $error')),
+      );
     }
   }
 }
@@ -304,6 +351,45 @@ class _SignOutButton extends StatelessWidget {
               const SizedBox(width: 12),
               Text(
                 'Çıkış Yap',
+                style: Theme.of(context)
+                    .textTheme
+                    .titleMedium
+                    ?.copyWith(color: error),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _DeleteAccountButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const _DeleteAccountButton({required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final error = Theme.of(context).colorScheme.error;
+    return Material(
+      color: Colors.transparent,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: error.withValues(alpha: 0.4)),
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.delete_forever_rounded, size: 20, color: error),
+              const SizedBox(width: 12),
+              Text(
+                'Hesabı Sil',
                 style: Theme.of(context)
                     .textTheme
                     .titleMedium

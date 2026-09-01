@@ -106,6 +106,21 @@ class AuthService {
     await _auth.signOut();
   }
 
+  /// Hesabi ve tum verilerini kalici olarak siler. Supabase'in normal
+  /// istemci anahtariyla auth.users'a yazma izni olmadigi icin, veritabani
+  /// tarafinda tanimlanmasi gereken (bkz. proje notlari) `delete_own_account`
+  /// RPC'sini cagirir; bu fonksiyon SECURITY DEFINER ile sadece cagiran
+  /// kullanicinin (auth.uid()) kendi hesabini silecek sekilde kisitlanmis
+  /// olmali. Basarili olursa yerel oturumu da kapatir.
+  static Future<void> deleteAccount() async {
+    try {
+      await Supabase.instance.client.rpc('delete_own_account');
+    } on PostgrestException catch (e) {
+      throw e.message;
+    }
+    await signOut();
+  }
+
   static Future<void> verifySignupOtp(String email, String token) async {
     try {
       await _auth.verifyOTP(
