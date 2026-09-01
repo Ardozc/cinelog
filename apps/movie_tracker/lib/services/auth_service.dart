@@ -21,6 +21,24 @@ class AuthService {
     return metadata['cinelog_signup_verified'] == true;
   }
 
+  /// Cihazda saklanan oturum (JWT suresi dolmamis olsa bile) hesabin hala
+  /// Supabase'de var oldugunu garanti etmez - hesap Dashboard'dan silinmis
+  /// olabilir. Bunu ancak sunucuya sorarak (GET /user) anlayabiliriz.
+  /// Ag hatasi (internet yok, gecici sunucu sorunu) durumunda hesabin
+  /// silindigi kanitlanmadigi icin oturumu gecerli sayiyoruz (fail-open);
+  /// sunucu acikca "gecersiz/bulunamadi" derse false donuyoruz.
+  static Future<bool> verifySessionStillValid() async {
+    if (_auth.currentSession == null) return false;
+    try {
+      await _auth.getUser();
+      return true;
+    } on AuthRetryableFetchException {
+      return true;
+    } on AuthException {
+      return false;
+    }
+  }
+
   static Future<void> signUp(
       String email, String password, String username) async {
     try {
