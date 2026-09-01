@@ -8,6 +8,13 @@ import '../models/watch_status.dart';
 /// seferde cekilip bellekte tutulur (eski Hive box'inin yerini alan basit
 /// bir onbellek); ekranlar hala senkron okuma yapar (getAll, get, vb.),
 /// sadece yazma islemleri (save/delete) arka planda Supabase'e gider.
+///
+/// Ayni hesabin baska bir cihazda yaptigi degisiklikleri yakalamak icin
+/// `entries` tablosuna Supabase Realtime aboneligi aciliyor: baska bir
+/// cihaz/oturum bir satir ekler/gunceller/silerse, bu cihaz otomatik olarak
+/// listeyi yeniden ceker ve ekranlar `changes` uzerinden anlik guncellenir.
+/// NOT: Bunun calismasi icin Supabase Dashboard > Database > Replication
+/// altinda `entries` tablosunda Realtime'in acik olmasi gerekiyor.
 class StorageService {
   StorageService._();
 
@@ -17,11 +24,14 @@ class StorageService {
   /// dinleyerek IndexedStack icinde bile anlik olarak yeniden cizilir.
   static final ValueNotifier<int> changes = ValueNotifier<int>(0);
 
+  static RealtimeChannel? _channel;
+
   static SupabaseClient get _client => Supabase.instance.client;
   static String get _uid => _client.auth.currentUser!.id;
 
   /// Oturum acildiginda (AuthGate) cagrilir: kullanicinin tum kayitlarini
-  /// Supabase'den cekip bellek onbellegini doldurur.
+  /// Supabase'den cekip bellek onbellegini doldurur ve baska cihazlardan
+  /// gelecek degisiklikleri dinlemeye baslar.
   static Future<void> loadForCurrentUser() async {
     final user = _client.auth.currentUser;
     if (user == null) {
@@ -29,18 +39,56 @@ class StorageService {
       changes.value++;
       return;
     }
-    final rows =
-        await _client.from('entries').select().eq('user_id', user.id);
+    await _fetchAndCache(user.id);
+    _subscribeToRemoteChanges(user.id);
+  }
+
+  /// Oturum kapandiginda (AuthGate) cagrilir: onbellek temizlenir ve
+  /// realtime aboneligi kapatilir.
+  static void clear() {
+    _cache = [];
+    changes.value++;
+    _unsubscribeFromRemoteChanges();
+  }
+
+  static Future<void> _fetchAndCache(String userId) async {
+    final rows = await _client.from('entries').select().eq('user_id', userId);
     _cache = (rows as List)
         .map((row) => UserEntry.fromMap(Map<String, dynamic>.from(row as Map)))
         .toList();
     changes.value++;
   }
 
-  /// Oturum kapandiginda (AuthGate) cagrilir: onbellek temizlenir.
-  static void clear() {
-    _cache = [];
-    changes.value++;
+  /// `entries` tablosunda bu kullanicinin satirlarinda olan her degisiklikte
+  /// (baska bir cihazdan gelen dahil) listeyi tamamen yeniden cekiyoruz.
+  /// Tek tek satir yamalamak yerine yeniden cekmeyi tercih etmemizin nedeni:
+  /// silme olaylarinda Postgres'in `old` kaydi (REPLICA IDENTITY ayarina
+  /// gore) sadece birincil anahtari icerebiliyor, movie_id/media_type
+  /// gelmeyebiliyor - tam yeniden cekme bu belirsizligi ortadan kaldiriyor.
+  static void _subscribeToRemoteChanges(String userId) {
+    _unsubscribeFromRemoteChanges();
+    _channel = _client
+        .channel('entries-changes-$userId')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'entries',
+          filter: PostgresChangeFilter(
+            type: PostgresChangeFilterType.eq,
+            column: 'user_id',
+            value: userId,
+          ),
+          callback: (_) => _fetchAndCache(userId),
+        )
+        .subscribe();
+  }
+
+  static void _unsubscribeFromRemoteChanges() {
+    final channel = _channel;
+    if (channel != null) {
+      _channel = null;
+      _client.removeChannel(channel);
+    }
   }
 
   static List<UserEntry> getAll() {
