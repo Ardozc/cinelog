@@ -7,8 +7,8 @@ const List<String> sortOptions = [
   'Varsayılan',
   'Listeye Eklenme (Yeni → Eski)',
   'Listeye Eklenme (Eski → Yeni)',
-  'Ada (A → Z)',
-  'Ada (Z → A)',
+  'Ada Göre (A → Z)',
+  'Ada Göre (Z → A)',
   'Çıkış Yılı (Yeni → Eski)',
   'Çıkış Yılı (Eski → Yeni)',
   'TMDb Puanı (Yüksek → Düşük)',
@@ -30,9 +30,9 @@ int _primaryCompare(UserEntry a, UserEntry b, String option) {
       return b.addedAt.compareTo(a.addedAt);
     case 'Listeye Eklenme (Eski → Yeni)':
       return a.addedAt.compareTo(b.addedAt);
-    case 'Ada (A → Z)':
+    case 'Ada Göre (A → Z)':
       return a.title.toLowerCase().compareTo(b.title.toLowerCase());
-    case 'Ada (Z → A)':
+    case 'Ada Göre (Z → A)':
       return b.title.toLowerCase().compareTo(a.title.toLowerCase());
     case 'Çıkış Yılı (Yeni → Eski)':
       return _releaseYear(b).compareTo(_releaseYear(a));

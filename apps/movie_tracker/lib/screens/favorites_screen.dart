@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../data/sort_options.dart';
 import '../models/user_entry.dart';
+import '../models/watch_status.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/genre_filter_chips.dart';
+import '../widgets/filter_button.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/sort_button.dart';
 import 'detail_screen.dart';
@@ -19,11 +19,10 @@ class FavoritesScreen extends StatefulWidget {
 
 class _FavoritesScreenState extends State<FavoritesScreen> {
   final _searchController = TextEditingController();
-  String _filter = 'Tümü';
+  String _category = 'Hepsi';
   Set<String> _selectedGenres = {};
+  Set<WatchStatus> _selectedStatuses = {};
   String _sortOption = sortOptions.first;
-
-  static const _filters = ['Tümü', 'Film', 'Dizi'];
 
   List<UserEntry> get _favorites =>
       StorageService.getAll().where((entry) => entry.favorite).toList();
@@ -33,13 +32,15 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
     final filtered = _favorites.where((entry) {
       final matchesQuery =
           query.isEmpty || entry.title.toLowerCase().contains(query);
-      final matchesFilter = switch (_filter) {
+      final matchesCategory = switch (_category) {
         'Film' => entry.mediaType == 'movie',
         'Dizi' => entry.mediaType == 'tv',
         _ => true,
       };
       final matchesGenre = StorageService.matchesGenres(entry, _selectedGenres);
-      return matchesQuery && matchesFilter && matchesGenre;
+      final matchesStatus =
+          StorageService.matchesStatuses(entry, _selectedStatuses);
+      return matchesQuery && matchesCategory && matchesGenre && matchesStatus;
     }).toList();
     return sortEntries(filtered, _sortOption);
   }
@@ -91,36 +92,28 @@ class _FavoritesScreenState extends State<FavoritesScreen> {
                           child: Row(
                             children: [
                               Expanded(
-                                child: ListView.separated(
-                                  scrollDirection: Axis.horizontal,
-                                  itemCount: _filters.length,
-                                  separatorBuilder: (_, __) =>
-                                      const SizedBox(width: 10),
-                                  itemBuilder: (_, index) {
-                                    final label = _filters[index];
-                                    return CategoryChip(
-                                      label: label,
-                                      selected: _filter == label,
-                                      onTap: () =>
-                                          setState(() => _filter = label),
-                                    );
-                                  },
+                                child: SortButton(
+                                  value: _sortOption,
+                                  onChanged: (v) =>
+                                      setState(() => _sortOption = v),
                                 ),
                               ),
                               const SizedBox(width: 10),
-                              SortButton(
-                                value: _sortOption,
-                                onChanged: (v) =>
-                                    setState(() => _sortOption = v),
+                              Expanded(
+                                child: FilterButton(
+                                  category: _category,
+                                  selectedGenres: _selectedGenres,
+                                  selectedStatuses: _selectedStatuses,
+                                  onCategoryChanged: (v) =>
+                                      setState(() => _category = v),
+                                  onGenresChanged: (v) =>
+                                      setState(() => _selectedGenres = v),
+                                  onStatusesChanged: (v) =>
+                                      setState(() => _selectedStatuses = v),
+                                ),
                               ),
                             ],
                           ),
-                        ),
-                        const SizedBox(height: 12),
-                        GenreFilterChips(
-                          selected: _selectedGenres,
-                          onChanged: (genres) =>
-                              setState(() => _selectedGenres = genres),
                         ),
                         const SizedBox(height: 20),
                       ],

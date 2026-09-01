@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import '../data/sort_options.dart';
 import '../models/user_entry.dart';
+import '../models/watch_status.dart';
 import '../services/storage_service.dart';
 import '../theme/app_colors.dart';
-import '../widgets/category_chip.dart';
-import '../widgets/genre_filter_chips.dart';
+import '../widgets/filter_button.dart';
 import '../widgets/movie_card.dart';
 import '../widgets/sort_button.dart';
 import 'detail_screen.dart';
@@ -26,8 +26,8 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   String _category = 'Hepsi';
-  final _categories = const ['Hepsi', 'Film', 'Dizi'];
   Set<String> _selectedGenres = {};
+  Set<WatchStatus> _selectedStatuses = {};
   final _searchController = TextEditingController();
   String _query = '';
   String _sortOption = sortOptions.first;
@@ -41,6 +41,7 @@ class _HomeScreenState extends State<HomeScreen> {
   List<UserEntry> get _filtered {
     final filtered = StorageService.byCategory(_category)
         .where((e) => StorageService.matchesGenres(e, _selectedGenres))
+        .where((e) => StorageService.matchesStatuses(e, _selectedStatuses))
         .where((e) =>
             _query.isEmpty ||
             e.title.toLowerCase().contains(_query.toLowerCase()))
@@ -178,32 +179,28 @@ class _HomeScreenState extends State<HomeScreen> {
                         child: Row(
                           children: [
                             Expanded(
-                              child: ListView.separated(
-                                scrollDirection: Axis.horizontal,
-                                itemCount: _categories.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(width: 10),
-                                itemBuilder: (_, i) => CategoryChip(
-                                  label: _categories[i],
-                                  selected: _category == _categories[i],
-                                  onTap: () => setState(
-                                      () => _category = _categories[i]),
-                                ),
+                              child: SortButton(
+                                value: _sortOption,
+                                onChanged: (v) =>
+                                    setState(() => _sortOption = v),
                               ),
                             ),
                             const SizedBox(width: 10),
-                            SortButton(
-                              value: _sortOption,
-                              onChanged: (v) => setState(() => _sortOption = v),
+                            Expanded(
+                              child: FilterButton(
+                                category: _category,
+                                selectedGenres: _selectedGenres,
+                                selectedStatuses: _selectedStatuses,
+                                onCategoryChanged: (v) =>
+                                    setState(() => _category = v),
+                                onGenresChanged: (v) =>
+                                    setState(() => _selectedGenres = v),
+                                onStatusesChanged: (v) =>
+                                    setState(() => _selectedStatuses = v),
+                              ),
                             ),
                           ],
                         ),
-                      ),
-                      const SizedBox(height: 12),
-                      GenreFilterChips(
-                        selected: _selectedGenres,
-                        onChanged: (genres) =>
-                            setState(() => _selectedGenres = genres),
                       ),
                       const SizedBox(height: 20),
                     ],

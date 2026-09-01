@@ -149,6 +149,10 @@ class StorageService {
   static bool matchesGenres(UserEntry entry, Set<String> selected) =>
       selected.isEmpty || entry.genres.any(selected.contains);
 
+  /// Coklu izleme durumu filtrelemesi (OR mantigi). Bos kume = filtre yok.
+  static bool matchesStatuses(UserEntry entry, Set<WatchStatus> selected) =>
+      selected.isEmpty || selected.contains(entry.status);
+
   // ---- Istatistik yardimcilari ----
 
   static int get totalMovies =>
