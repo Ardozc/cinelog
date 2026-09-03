@@ -58,8 +58,8 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       setState(() => _error = 'Kodu gir.');
       return;
     }
-    if (newPassword.length < 6) {
-      setState(() => _error = 'Şifre en az 6 karakter olmalı.');
+    if (newPassword.length < 8) {
+      setState(() => _error = 'Şifre en az 8 karakter olmalı.');
       return;
     }
     setState(() {

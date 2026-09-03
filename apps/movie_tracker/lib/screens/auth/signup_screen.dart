@@ -44,8 +44,8 @@ class _SignupScreenState extends State<SignupScreen> {
           'Kullanıcı adı 3-20 karakter olmalı, sadece harf/rakam/_ içerebilir.');
       return;
     }
-    if (password.length < 6) {
-      setState(() => _error = 'Şifre en az 6 karakter olmalı.');
+    if (password.length < 8) {
+      setState(() => _error = 'Şifre en az 8 karakter olmalı.');
       return;
     }
     if (password != confirm) {

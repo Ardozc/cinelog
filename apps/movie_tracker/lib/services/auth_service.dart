@@ -11,15 +11,14 @@ class AuthService {
 
   static Stream<AuthState> get authStateChanges => _auth.onAuthStateChange;
 
-  /// [cinelog_signup_verified] bayragi hic yoksa (bu fix'ten once acilmis
-  /// hesap) kisitlama uygulamiyoruz; varsa true olmasi gerekiyor.
-  static bool isVerified(User? user) {
-    final metadata = user?.userMetadata;
-    if (metadata == null || !metadata.containsKey('cinelog_signup_verified')) {
-      return true;
-    }
-    return metadata['cinelog_signup_verified'] == true;
-  }
+  /// Dogrulama durumu GoTrue'nun kendi sunucu-taraf `email_confirmed_at`
+  /// alanindan okunur (client'in yazabildigi `user_metadata` gibi degil -
+  /// bu alani sadece Supabase, gercek bir OTP dogrulamasi sonrasi set eder).
+  /// Onceki surumde bu bayrak `user_metadata` icinde tutuluyordu; herhangi
+  /// bir client `updateUser` cagirarak bunu kendi kendine true yapabildigi
+  /// icin (GoTrue user_metadata her zaman client-writable'dir) dogrulama
+  /// zorunlulugu tamamen atlatilabiliyordu. Bkz. guvenlik denetimi notlari.
+  static bool isVerified(User? user) => user?.emailConfirmedAt != null;
 
   /// Cihazda saklanan oturum (JWT suresi dolmamis olsa bile) hesabin hala
   /// Supabase'de var oldugunu garanti etmez - hesap Dashboard'dan silinmis
@@ -45,15 +44,7 @@ class AuthService {
       await _auth.signUp(
         email: email,
         password: password,
-        // NOT: metadata anahtari kasitli olarak 'email_verified' DEGIL.
-        // GoTrue, user_metadata icindeki 'email_verified'/'phone_verified'
-        // alanlarini rezerve tutuyor ve email herhangi bir OTP turuyle
-        // (signup DAHIL recovery ile de) dogrulaninca bu alani kendisi
-        // otomatik true yapiyor - denenip dogrulandi. O yuzden kendi
-        // bayragimizi farkli bir isimle tutuyoruz ki sadece bizim
-        // verifySignupOtp cagrimiz onu true yapabilsin, recovery akisi
-        // dokunamasin.
-        data: {'username': username, 'cinelog_signup_verified': false},
+        data: {'username': username},
       );
     } on AuthException catch (e) {
       throw _mapError(e);
@@ -61,9 +52,10 @@ class AuthService {
   }
 
   /// [identifier] email veya kullanici adi olabilir. Kullanici adiysa once
-  /// `get_email_for_username` RPC'siyle karsilik gelen email'e cevrilir.
+  /// `get_email_for_username` RPC'siyle (sifre dogrulamasiyla birlikte)
+  /// karsilik gelen email'e cevrilir.
   static Future<void> signIn(String identifier, String password) async {
-    final email = await resolveEmail(identifier);
+    final email = await resolveEmail(identifier, password);
     if (email == null) {
       throw 'Kullanıcı adı veya şifre hatalı.';
     }
@@ -79,13 +71,19 @@ class AuthService {
   }
 
   /// [identifier] zaten email ise oldugu gibi doner; kullanici adiysa
-  /// karsilik gelen email'i sorgular. Bulunamazsa null doner.
-  static Future<String?> resolveEmail(String identifier) async {
+  /// `get_email_for_username` RPC'sine [password] ile birlikte sorulur.
+  /// RPC, sifre dogru DEGILSE de kullanici bulunamadiysa da null doner -
+  /// boylece bu uc nokta kimliksiz bir "email oracle"a donusmuyor (bkz.
+  /// guvenlik denetimi: onceki halinde herkes sadece kullanici adi girerek
+  /// gercek email adresini alabiliyordu).
+  static Future<String?> resolveEmail(String identifier, String password) async {
     final trimmed = identifier.trim();
     if (trimmed.contains('@')) return trimmed;
     try {
-      final result = await Supabase.instance.client
-          .rpc('get_email_for_username', params: {'uname': trimmed});
+      final result = await Supabase.instance.client.rpc(
+        'get_email_for_username',
+        params: {'uname': trimmed, 'pass': password},
+      );
       return result as String?;
     } catch (_) {
       return null;
@@ -93,13 +91,13 @@ class AuthService {
   }
 
   /// Kayit formunda aninda "bu kullanici adi alinmis mi" kontrolu icin.
+  /// `profiles` tablosunu dogrudan sorgulamak yerine sadece true/false
+  /// donen bir RPC kullanilir (bkz. guvenlik denetimi: `profiles` tablosu
+  /// artik anon/authenticated icin dogrudan SELECT edilebilir degil).
   static Future<bool> isUsernameAvailable(String username) async {
     final result = await Supabase.instance.client
-        .from('profiles')
-        .select('id')
-        .eq('username', username)
-        .maybeSingle();
-    return result == null;
+        .rpc('is_username_available', params: {'uname': username});
+    return result as bool;
   }
 
   static Future<void> signOut() async {
@@ -128,15 +126,9 @@ class AuthService {
         email: email,
         token: token,
       );
-      try {
-        await _auth.updateUser(
-            UserAttributes(data: {'cinelog_signup_verified': true}));
-      } catch (_) {
-        // Metadata guncellemesi basarisiz olsa da OTP dogrulamasi tamamlandi;
-        // kullaniciyi hataya dusurmemek icin sessizce yut. Kullanici bir
-        // sonraki girişte tekrar engellenirse "Kodu tekrar gönder" ile
-        // yeniden dogrulayabilir.
-      }
+      // Basarili dogrulama GoTrue'nun kendi `email_confirmed_at` alanini
+      // otomatik set eder; isVerified() bunu okur, ayrica bir metadata
+      // guncellemesi gerekmez (bkz. isVerified()).
     } on AuthException catch (e) {
       throw _mapError(e);
     }

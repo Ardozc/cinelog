@@ -82,7 +82,9 @@ class _LoginScreenState extends State<LoginScreen> {
 
   Future<void> _goToVerify() async {
     final identifier = _identifierController.text.trim();
-    final email = await AuthService.resolveEmail(identifier) ?? identifier;
+    final email = await AuthService.resolveEmail(
+            identifier, _passwordController.text) ??
+        identifier;
     if (!mounted) return;
     Navigator.of(context).push(
       MaterialPageRoute(builder: (_) => VerifyEmailScreen(email: email)),
