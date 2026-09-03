@@ -18,6 +18,9 @@ class ProfileScreen extends StatelessWidget {
       valueListenable: StorageService.changes,
       builder: (context, _, __) {
         final profileStats = _ProfileStats.fromEntries(StorageService.getAll());
+        final username =
+            AuthService.currentUser?.userMetadata?['username'] as String? ??
+                'Kullanıcı';
 
         final stats = [
           (
@@ -87,7 +90,7 @@ class ProfileScreen extends StatelessWidget {
                           Icon(Icons.person_rounded, size: 44, color: primary),
                     ),
                     const SizedBox(height: 14),
-                    Text('Sinefil',
+                    Text(username,
                         style: Theme.of(context).textTheme.headlineMedium),
                     const SizedBox(height: 4),
                     Text('Film ve dizi arşivin',
