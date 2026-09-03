@@ -122,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                       Container(
                         padding: const EdgeInsets.symmetric(horizontal: 18),
                         decoration: BoxDecoration(
-                          color: Theme.of(context).cardColor,
+                          color: isDark ? AppColors.darkCard : AppColors.lightCard,
                           borderRadius: BorderRadius.circular(18),
                           boxShadow: [
                             BoxShadow(
