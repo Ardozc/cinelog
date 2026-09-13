@@ -1,6 +1,6 @@
 # Cinelog
 
-Film ve dizi takip uygulaması. Kullanıcılar TMDb kataloğundan film/dizi arar, kişisel listelerine ekler; puan, not ve izleme durumu (izlenecek / izleniyor / tamamlandı / tekrar izlenecek / bırakıldı) takip eder, favori işaretler ve izleme istatistiklerini görüntüler.
+Film ve dizi takip uygulaması. Kullanıcılar TMDb kataloğundan film/dizi arar, kişisel listelerine ekler; puan, not ve izleme durumu (izlenecek / izleniyor / tamamlandı / bırakıldı) takip eder, favori işaretler ve izleme istatistiklerini görüntüler.
 
 ## Temel Özellikler
 

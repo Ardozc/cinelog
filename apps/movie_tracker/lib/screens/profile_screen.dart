@@ -59,11 +59,6 @@ class ProfileScreen extends StatelessWidget {
             icon: Icons.bookmark_border_rounded
           ),
           (
-            label: 'Tekrar İzlenecekler',
-            value: '${profileStats.rewatch}',
-            icon: Icons.replay_rounded
-          ),
-          (
             label: 'Bırakılanlar',
             value: '${profileStats.dropped}',
             icon: Icons.cancel_outlined
@@ -203,7 +198,6 @@ class _ProfileStats {
   final int completed;
   final int watching;
   final int watchlist;
-  final int rewatch;
   final int dropped;
   final String topGenre;
 
@@ -215,7 +209,6 @@ class _ProfileStats {
     required this.completed,
     required this.watching,
     required this.watchlist,
-    required this.rewatch,
     required this.dropped,
     required this.topGenre,
   });
@@ -249,8 +242,6 @@ class _ProfileStats {
       watchlist: entries
           .where((entry) => entry.status == WatchStatus.watchlist)
           .length,
-      rewatch:
-          entries.where((entry) => entry.status == WatchStatus.rewatch).length,
       dropped:
           entries.where((entry) => entry.status == WatchStatus.dropped).length,
       topGenre: genreCounts.isEmpty

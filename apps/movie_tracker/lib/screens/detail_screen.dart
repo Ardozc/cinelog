@@ -134,7 +134,6 @@ class _DetailScreenState extends State<DetailScreen>
           _droppedAt ??= now;
           break;
         case WatchStatus.watchlist:
-        case WatchStatus.rewatch:
           break;
       }
     });
@@ -153,7 +152,6 @@ class _DetailScreenState extends State<DetailScreen>
           _droppedAt = date;
           break;
         case WatchStatus.watchlist:
-        case WatchStatus.rewatch:
           break;
       }
     });
@@ -183,7 +181,6 @@ class _DetailScreenState extends State<DetailScreen>
       case WatchStatus.dropped:
         return (question: 'Ne zaman bıraktınız?', date: _droppedAt);
       case WatchStatus.watchlist:
-      case WatchStatus.rewatch:
         return null;
     }
   }

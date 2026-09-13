@@ -124,7 +124,7 @@ Tüm istekler `language=tr-TR` varsayılan parametresiyle yapılır. TMDb anahta
 
 ## Favorites, Watchlist ve Watch Status
 
-`WatchStatus` enum'u (`lib/models/watch_status.dart`) beş durumu tanımlar: **İzlenecek, İzleniyor, Tamamlandı, Tekrar İzlenecek, Bırakıldı** — her biri kendi rengiyle. Favori (`favorite`) ayrı, bağımsız bir boolean alandır (bir izleme durumu değildir); Favoriler sekmesi yalnızca `favorite = true` olan kayıtları listeler.
+`WatchStatus` enum'u (`lib/models/watch_status.dart`) dört durumu tanımlar: **İzlenecek, İzleniyor, Tamamlandı, Bırakıldı** — her biri kendi rengiyle. Favori (`favorite`) ayrı, bağımsız bir boolean alandır (bir izleme durumu değildir); Favoriler sekmesi yalnızca `favorite = true` olan kayıtları listeler.
 
 ## Filtreleme ve Sıralama
 

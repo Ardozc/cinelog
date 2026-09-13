@@ -27,6 +27,5 @@ class AppColors {
   static const statusWatchlist = Color(0xFF9CA3AF);
   static const statusWatching = Color(0xFF7C8CF8);
   static const statusCompleted = Color(0xFF34D399);
-  static const statusRewatch = Color(0xFFFFD166);
   static const statusDropped = Color(0xFFF87171);
 }

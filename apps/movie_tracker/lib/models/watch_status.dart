@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_colors.dart';
 
 /// Kullanicinin bir yapima verdigi izleme durumu.
-enum WatchStatus { watchlist, watching, completed, rewatch, dropped }
+enum WatchStatus { watchlist, watching, completed, dropped }
 
 extension WatchStatusX on WatchStatus {
   String get label {
@@ -13,8 +13,6 @@ extension WatchStatusX on WatchStatus {
         return 'İzleniyor';
       case WatchStatus.completed:
         return 'Tamamlandı';
-      case WatchStatus.rewatch:
-        return 'Tekrar İzlenecek';
       case WatchStatus.dropped:
         return 'Bırakıldı';
     }
@@ -28,8 +26,6 @@ extension WatchStatusX on WatchStatus {
         return AppColors.statusWatching;
       case WatchStatus.completed:
         return AppColors.statusCompleted;
-      case WatchStatus.rewatch:
-        return AppColors.statusRewatch;
       case WatchStatus.dropped:
         return AppColors.statusDropped;
     }

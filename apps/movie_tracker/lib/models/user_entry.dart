@@ -57,7 +57,6 @@ class UserEntry {
       case WatchStatus.dropped:
         return droppedAt;
       case WatchStatus.watchlist:
-      case WatchStatus.rewatch:
         return null;
     }
   }
