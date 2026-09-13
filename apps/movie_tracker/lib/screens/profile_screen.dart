@@ -3,6 +3,7 @@ import '../models/user_entry.dart';
 import '../models/watch_status.dart';
 import '../services/auth_service.dart';
 import '../services/storage_service.dart';
+import '../services/theme_service.dart';
 import '../theme/app_colors.dart';
 
 /// Profil sayfasi: avatar + UserEntry listesinden hesaplanan ozet kartlari.
@@ -111,6 +112,14 @@ class ProfileScreen extends StatelessWidget {
                     .toList(),
               ),
               const SizedBox(height: 14),
+              ValueListenableBuilder<ThemeMode>(
+                valueListenable: ThemeService.themeMode,
+                builder: (context, mode, __) => _ThemeButton(
+                  value: mode,
+                  onChanged: ThemeService.setThemeMode,
+                ),
+              ),
+              const SizedBox(height: 10),
               _SignOutButton(onTap: () => _confirmSignOut(context)),
               const SizedBox(height: 10),
               _DeleteAccountButton(onTap: () => _confirmDeleteAccount(context)),
@@ -352,6 +361,112 @@ class _SignOutButton extends StatelessWidget {
               ),
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _ThemeButton extends StatelessWidget {
+  final ThemeMode value;
+  final ValueChanged<ThemeMode> onChanged;
+
+  const _ThemeButton({required this.value, required this.onChanged});
+
+  static const _options = [
+    (mode: ThemeMode.light, label: 'Açık', icon: Icons.light_mode_rounded),
+    (mode: ThemeMode.dark, label: 'Koyu', icon: Icons.dark_mode_rounded),
+    (
+      mode: ThemeMode.system,
+      label: 'Telefon Varsayılanı',
+      icon: Icons.smartphone_rounded
+    ),
+  ];
+
+  String get _label =>
+      _options.firstWhere((o) => o.mode == value).label;
+
+  @override
+  Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+    return Material(
+      color: Theme.of(context).cardColor,
+      borderRadius: BorderRadius.circular(20),
+      child: InkWell(
+        onTap: () => _openSheet(context),
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(20),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: isDark ? 0.25 : 0.04),
+                blurRadius: 12,
+                offset: const Offset(0, 4),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Icon(Icons.brightness_6_rounded, size: 20, color: primary),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Text('Tema',
+                    style: Theme.of(context).textTheme.titleMedium),
+              ),
+              Text(
+                _label,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+              const SizedBox(width: 4),
+              Icon(Icons.chevron_right_rounded,
+                  size: 20,
+                  color: Theme.of(context).textTheme.bodyMedium?.color),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _openSheet(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primary = isDark ? AppColors.primaryDark : AppColors.primary;
+
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Theme.of(context).cardColor,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (sheetContext) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text('Tema',
+                    style: Theme.of(sheetContext).textTheme.titleLarge),
+              ),
+            ),
+            for (final option in _options)
+              ListTile(
+                leading: Icon(option.icon),
+                title: Text(option.label),
+                trailing: option.mode == value
+                    ? Icon(Icons.check_rounded, color: primary)
+                    : null,
+                onTap: () {
+                  onChanged(option.mode);
+                  Navigator.pop(sheetContext);
+                },
+              ),
+            const SizedBox(height: 8),
+          ],
         ),
       ),
     );
